@@ -36,6 +36,22 @@ export default function SettingsPage() {
     test2Label: 'Test 2',
     assignment2Label: 'Assign 2',
     examLabel: 'Exam',
+    studentLabel: 'Student Name',
+    subjectLabel: 'Subject of Learning',
+    caSubtotalLabel: 'CA Subtotal',
+    caWeightLabel: 'CA',
+    examWeightLabel: 'Exam',
+    finalTotalLabel: 'Final Total',
+    gradeLabel: 'Grade',
+    remarksLabel: 'Remarks / Comment',
+    classTeacherLabel: 'Class Teacher',
+    headTeacherLabel: 'Head Teacher',
+    totalMarksLabel: 'Total Marks',
+    averageLabel: 'Average %',
+    positionLabel: 'Class Position',
+    classAverageLabel: 'Class Average',
+    highestScoreLabel: 'Highest Score',
+    lowestScoreLabel: 'Lowest Score',
     columnWidth: 100,
   });
 
@@ -168,6 +184,7 @@ export default function SettingsPage() {
         {[
           { id: 'school', label: 'School & Reports', icon: Building2 },
           { id: 'assessment', label: 'Assessment Rules', icon: Calculator },
+          { id: 'terminology', label: 'Terminology', icon: Layout },
           { id: 'grading', label: 'Grading System', icon: GraduationCap }
         ].map((tab) => (
           <button
@@ -312,10 +329,29 @@ export default function SettingsPage() {
                 </div>
               </div>
             </section>
+          </div>
+        )}
 
-            <section className="bg-slate-50 dark:bg-slate-800/20 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+        {/* TAB 3: Terminology & Custom Labels */}
+        {activeTab === 'terminology' && (
+          <div className="p-6 md:p-8 space-y-10 animate-fade-in">
+            <div className="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-100 dark:border-blue-900/30">
+              <div className="flex items-start gap-4">
+                <div className="bg-blue-600 p-2 rounded-lg text-white">
+                  <Layout className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-blue-900 dark:text-blue-300">System Terminology Control</h4>
+                  <p className="text-blue-700 dark:text-blue-400 text-sm mt-1">
+                    Customize every word and label used across the system. This allows you to adapt the system to your school's specific curriculum and naming conventions.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <section className="bg-white dark:bg-slate-800/20 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-6">
-                <Layout className="w-4 h-4" /> Marks Entry Table Customization
+                <Layout className="w-4 h-4" /> Column Width & Layout
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="col-span-1 md:col-span-2 lg:col-span-3">
@@ -338,7 +374,7 @@ export default function SettingsPage() {
 
                 <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700 col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="col-span-3 mb-2">
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Custom Assessment Column Labels</p>
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Custom assessment & terminology labels</p>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Column 1 Label</label>
@@ -359,6 +395,82 @@ export default function SettingsPage() {
                   <div>
                     <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Exam Column Label</label>
                     <input type="text" name="examLabel" value={settings.examLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Exam" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Student Name Column</label>
+                    <input type="text" name="studentLabel" value={settings.studentLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Learner Name" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Subject Column</label>
+                    <input type="text" name="subjectLabel" value={settings.subjectLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Subject" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">CA Subtotal Label</label>
+                    <input type="text" name="caSubtotalLabel" value={settings.caSubtotalLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Formative Total" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">CA Weight Label (Short)</label>
+                    <input type="text" name="caWeightLabel" value={settings.caWeightLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. CA / Class Work" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Exam Weight Label (Short)</label>
+                    <input type="text" name="examWeightLabel" value={settings.examWeightLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Summative / Exam" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Final Total Label</label>
+                    <input type="text" name="finalTotalLabel" value={settings.finalTotalLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Aggregate Score" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Grade Column</label>
+                    <input type="text" name="gradeLabel" value={settings.gradeLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Level" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Remarks Column</label>
+                    <input type="text" name="remarksLabel" value={settings.remarksLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Recommendation" />
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-6 mt-4 border-t border-slate-200 dark:border-slate-700 col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="col-span-2 mb-2">
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Role designations</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Class Teacher Designation</label>
+                    <input type="text" name="classTeacherLabel" value={settings.classTeacherLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Form Teacher" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Head Teacher Designation</label>
+                    <input type="text" name="headTeacherLabel" value={settings.headTeacherLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Principal / Headmaster" />
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-6 mt-4 border-t border-slate-200 dark:border-slate-700 col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="col-span-3 mb-2">
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Report Statistics Labels</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Total Marks Label</label>
+                    <input type="text" name="totalMarksLabel" value={settings.totalMarksLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Total Score" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Average % Label</label>
+                    <input type="text" name="averageLabel" value={settings.averageLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Percentage" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Class Position Label</label>
+                    <input type="text" name="positionLabel" value={settings.positionLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Rank" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Class Average Label</label>
+                    <input type="text" name="classAverageLabel" value={settings.classAverageLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Group Mean" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Highest Score Label</label>
+                    <input type="text" name="highestScoreLabel" value={settings.highestScoreLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Peak" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Lowest Score Label</label>
+                    <input type="text" name="lowestScoreLabel" value={settings.lowestScoreLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Minimum" />
                   </div>
                 </div>
               </div>

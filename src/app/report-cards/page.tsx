@@ -165,7 +165,7 @@ export default function ReportCardsPage() {
           {/* Student Info Grid */}
           <div className="grid grid-cols-2 gap-x-12 gap-y-6 mb-10 py-8 px-10 bg-slate-50 border-x-2 border-slate-200 rounded-sm font-sans">
             <div className="flex border-b border-slate-300 pb-1">
-              <span className="font-black w-36 uppercase text-[10px] text-indigo-900 flex items-center">Student Name:</span> 
+              <span className="font-black w-36 uppercase text-[10px] text-indigo-900 flex items-center">{reportData.school.studentLabel || 'Student Name'}:</span> 
               <span className="font-bold text-lg uppercase flex-1">{reportData.student.lastName}, {reportData.student.firstName} {reportData.student.middleName}</span>
             </div>
             <div className="flex border-b border-slate-300 pb-1">
@@ -187,12 +187,12 @@ export default function ReportCardsPage() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-slate-800 text-white">
-                  <th className="border-2 border-slate-800 px-4 py-4 text-left uppercase text-[11px] font-black w-1/3">Subject of Learning</th>
-                  <th className="border-2 border-slate-800 px-2 py-4 text-center uppercase text-[11px] font-black">CA<br/><span className="text-[9px] font-normal opacity-70">({reportData.subjects[0]?.caWeight || 40}%)</span></th>
+                  <th className="border-2 border-slate-800 px-4 py-4 text-left uppercase text-[11px] font-black w-1/3">{reportData.school.subjectLabel || 'Subject of Learning'}</th>
+                  <th className="border-2 border-slate-800 px-2 py-4 text-center uppercase text-[11px] font-black">{reportData.school.caWeightLabel || 'CA'}<br/><span className="text-[9px] font-normal opacity-70">({reportData.school.caWeight || 40}%)</span></th>
                   <th className="border-2 border-slate-800 px-2 py-4 text-center uppercase text-[11px] font-black">{reportData.school.examLabel || 'Exam'}<br/><span className="text-[9px] font-normal opacity-70">({reportData.school.examWeight || 60}%)</span></th>
-                  <th className="border-2 border-slate-800 px-2 py-4 text-center uppercase text-[11px] font-black bg-slate-700">Total<br/><span className="text-[9px] font-normal opacity-70">(100%)</span></th>
-                  <th className="border-2 border-slate-800 px-2 py-4 text-center uppercase text-[11px] font-black">Grade</th>
-                  <th className="border-2 border-slate-800 px-4 py-4 text-left uppercase text-[11px] font-black">Remarks / Comment</th>
+                  <th className="border-2 border-slate-800 px-2 py-4 text-center uppercase text-[11px] font-black bg-slate-700">{reportData.school.finalTotalLabel || 'Total'}<br/><span className="text-[9px] font-normal opacity-70">(100%)</span></th>
+                  <th className="border-2 border-slate-800 px-2 py-4 text-center uppercase text-[11px] font-black">{reportData.school.gradeLabel || 'Grade'}</th>
+                  <th className="border-2 border-slate-800 px-4 py-4 text-left uppercase text-[11px] font-black">{reportData.school.remarksLabel || 'Remarks / Comment'}</th>
                 </tr>
               </thead>
               <tbody className="border-2 border-slate-800">
@@ -221,16 +221,16 @@ export default function ReportCardsPage() {
               </h3>
               <div className="grid grid-cols-2 gap-6">
                 <div className="text-center p-4 bg-white border border-slate-200 rounded shadow-sm">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Marks</div>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{reportData.school.totalMarksLabel || 'Total Marks'}</div>
                   <div className="text-2xl font-black text-slate-800">{reportData.summary.totalMarks}</div>
                 </div>
                 <div className="text-center p-4 bg-white border border-slate-200 rounded shadow-sm">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Average %</div>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{reportData.school.averageLabel || 'Average %'}</div>
                   <div className="text-2xl font-black text-indigo-700">{reportData.summary.average}</div>
                 </div>
                 {reportData.summary.showPositions && (
                   <div className="text-center p-4 bg-indigo-900 rounded col-span-2 shadow-lg">
-                    <div className="text-[10px] text-indigo-300 font-bold uppercase tracking-[0.2em] mb-1">Official Rank in Class</div>
+                    <div className="text-[10px] text-indigo-300 font-bold uppercase tracking-[0.2em] mb-1">{reportData.school.positionLabel || 'Class Position'}</div>
                     <div className="text-3xl font-black text-white">
                       {reportData.summary.positionSuffix} <span className="text-xs font-medium opacity-70 lowercase">out of {reportData.summary.totalStudents} students</span>
                     </div>
@@ -244,15 +244,15 @@ export default function ReportCardsPage() {
                 <h3 className="uppercase text-[11px] font-black text-slate-500 mb-6 border-b-2 border-slate-200 pb-2">Internal Stats (Class Data)</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between border-b pb-2">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Class Average:</span>
+                    <span className="text-xs font-bold text-slate-500 uppercase">{reportData.school.classAverageLabel || 'Class Average'}:</span>
                     <span className="font-black text-sm">{reportData.summary.classAverage}%</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Class Peak Score:</span>
+                    <span className="text-xs font-bold text-slate-500 uppercase">{reportData.school.highestScoreLabel || 'Highest Score'}:</span>
                     <span className="font-black text-sm text-emerald-600">{reportData.summary.highestAvg}%</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Class Min Score:</span>
+                    <span className="text-xs font-bold text-slate-500 uppercase">{reportData.school.lowestScoreLabel || 'Lowest Score'}:</span>
                     <span className="font-black text-sm text-red-600">{reportData.summary.lowestAvg}%</span>
                   </div>
                 </div>
@@ -265,7 +265,7 @@ export default function ReportCardsPage() {
           <div className="space-y-8 mb-12 border-t-2 border-slate-800 pt-8 font-sans">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div>
-                <p className="text-[11px] font-black uppercase text-slate-400 mb-3 tracking-widest">Class Teacher's Final Comment</p>
+                <p className="text-[11px] font-black uppercase text-slate-400 mb-3 tracking-widest">{reportData.school.classTeacherLabel || 'Class Teacher'}'s Final Comment</p>
                 <div className="p-6 border-2 border-slate-100 bg-slate-50 rounded-sm italic text-slate-800 text-sm font-medium min-h-[100px] leading-relaxed relative">
                   <span className="text-4xl absolute -top-2 left-2 text-indigo-100 font-serif opacity-50">"</span>
                   {reportData.remarks.teacher}
@@ -273,11 +273,11 @@ export default function ReportCardsPage() {
                 </div>
                 <div className="mt-4 pt-8 border-t border-slate-200 text-center">
                   <p className="text-xs font-black uppercase text-slate-900 border-b-2 border-slate-900 inline-block px-4">{reportData.student.classTeacherKey}</p>
-                  <p className="text-[9px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">Class Teacher</p>
+                  <p className="text-[9px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">{reportData.school.classTeacherLabel || 'Class Teacher'}</p>
                 </div>
               </div>
               <div>
-                <p className="text-[11px] font-black uppercase text-slate-400 mb-3 tracking-widest">Head Teacher's Final Directive</p>
+                <p className="text-[11px] font-black uppercase text-slate-400 mb-3 tracking-widest">{reportData.school.headTeacherLabel || 'Head Teacher'}'s Final Directive</p>
                 <div className="p-6 border-2 border-indigo-50 bg-indigo-50/30 rounded-sm italic text-slate-800 text-sm font-bold min-h-[100px] leading-relaxed relative">
                   <span className="text-4xl absolute -top-2 left-2 text-indigo-200 font-serif opacity-40">"</span>
                   {reportData.remarks.headteacher}
@@ -285,7 +285,7 @@ export default function ReportCardsPage() {
                 </div>
                 <div className="mt-4 pt-8 border-t border-slate-200 text-center">
                   <p className="text-xs font-black uppercase text-slate-900 border-b-2 border-slate-900 inline-block px-4">{reportData.school.headTeacherName}</p>
-                  <p className="text-[9px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">Head Teacher / Official Signature</p>
+                  <p className="text-[9px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">{reportData.school.headTeacherLabel || 'Head Teacher'} / Official Signature</p>
                 </div>
               </div>
             </div>

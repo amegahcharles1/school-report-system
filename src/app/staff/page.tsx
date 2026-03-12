@@ -138,9 +138,16 @@ export default function StaffPage() {
     if (!confirm(`Remove ${name} from the system? This cannot be undone.`)) return;
     try {
       const res = await fetch(`/api/staff/${id}`, { method: 'DELETE' });
-      if (res.ok) { toast.success('Teacher removed'); setStaff(staff.filter(s => s.id !== id)); }
-      else toast.error('Failed to delete');
-    } catch { toast.error('Network error'); }
+      const data = await res.json();
+      if (res.ok) { 
+        toast.success(data.message || 'Teacher removed'); 
+        setStaff(prev => prev.filter(s => s.id !== id)); 
+      } else {
+        toast.error(data.error || 'Failed to delete: ' + (data.error || 'Unknown error'));
+      }
+    } catch { 
+      toast.error('Network error - please check your connection'); 
+    }
   };
 
   // ─── ASSIGNMENT HELPERS ───

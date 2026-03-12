@@ -84,11 +84,42 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     const { id } = await params;
+
+    // Check if user exists and is a teacher (security)
+    const userToDelete = await prisma.user.findUnique({
+      where: { id },
+      select: { role: true, name: true }
+    });
+
+    if (!userToDelete) {
+      return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
+    }
+
+    if (userToDelete.role === 'ADMIN') {
+      return NextResponse.json({ error: 'Cannot delete administrator accounts' }, { status: 400 });
+    }
+
+    // Manual cleanup of assignments just to be safe, although schema has cascade
+    await prisma.teacherAssignment.deleteMany({ where: { userId: id } });
+    
+    // Clear class oversight references
+    await prisma.class.updateMany({
+      where: { classTeacherId: id },
+      data: { classTeacherId: null }
+    });
+
+    // Final deletion
     await prisma.user.delete({ where: { id } });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Failed to delete staff member:', error);
-    return NextResponse.json({ error: 'Failed to delete staff member' }, { status: 500 });
+    return NextResponse.json({ success: true, message: `Teacher ${userToDelete.name} removed successfully` });
+  } catch (error: any) {
+    console.error('Failed to delete teacher:', error);
+    // Explicitly handle foreign key errors if they still occur
+    if (error.code === 'P2003') {
+      return NextResponse.json({ 
+        error: 'Cannot delete teacher because they have associated records (marks, etc.) that cannot be removed.' 
+      }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Failed to delete teacher account' }, { status: 500 });
   }
 }

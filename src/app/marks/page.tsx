@@ -212,7 +212,7 @@ export default function MarksEntryPage() {
                 <thead>
                   <tr>
                     <th onClick={() => handleSort('name')} className={`sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 w-48 ${thClass('name')}`}>
-                      Student Name <SortIcon col="name" />
+                      {settings?.studentLabel || 'Student Name'} <SortIcon col="name" />
                     </th>
                     <th onClick={() => handleSort('test1')} className={`text-center ${thClass('test1')}`} style={{ minWidth: settings?.columnWidth || 100 }}>
                       {settings?.test1Label || 'Test 1'} <SortIcon col="test1" /><br /><span className="text-xs font-normal text-gray-400">(25)</span>
@@ -227,19 +227,19 @@ export default function MarksEntryPage() {
                       {settings?.assignment2Label || 'Assign 2'} <SortIcon col="assign2" /><br /><span className="text-xs font-normal text-gray-400">(25)</span>
                     </th>
                     <th onClick={() => handleSort('caSubtotal')} className={`text-center bg-blue-50/50 dark:bg-blue-900/10 ${thClass('caSubtotal')}`} style={{ minWidth: 100 }}>
-                      CA Subtotal <SortIcon col="caSubtotal" /><br /><span className="text-xs font-normal text-gray-400">(100)</span>
+                      {settings?.caSubtotalLabel || 'CA Subtotal'} <SortIcon col="caSubtotal" /><br /><span className="text-xs font-normal text-gray-400">(100)</span>
                     </th>
                     <th onClick={() => handleSort('ca40')} className={`text-center text-blue-600 ${thClass('ca40')}`} style={{ minWidth: 80 }}>
-                      CA {settings?.caWeight || 40}% <SortIcon col="ca40" /><br /><span className="text-xs font-normal text-blue-400">({settings?.caWeight || 40})</span>
+                      {settings?.caWeightLabel || 'CA'} {settings?.caWeight || 40}% <SortIcon col="ca40" /><br /><span className="text-xs font-normal text-blue-400">({settings?.caWeight || 40})</span>
                     </th>
                     <th onClick={() => handleSort('exam')} className={`text-center border-l border-gray-200 dark:border-gray-700 ${thClass('exam')}`} style={{ minWidth: settings?.columnWidth || 100 }}>
                       {settings?.examLabel || 'Exam'} <SortIcon col="exam" /><br /><span className="text-xs font-normal text-gray-400">(100)</span>
                     </th>
                     <th onClick={() => handleSort('exam60')} className={`text-center text-blue-600 ${thClass('exam60')}`} style={{ minWidth: 80 }}>
-                      Exam {settings?.examWeight || 60}% <SortIcon col="exam60" /><br /><span className="text-xs font-normal text-blue-400">({settings?.examWeight || 60})</span>
+                      {settings?.examWeightLabel || 'Exam'} {settings?.examWeight || 60}% <SortIcon col="exam60" /><br /><span className="text-xs font-normal text-blue-400">({settings?.examWeight || 60})</span>
                     </th>
                     <th onClick={() => handleSort('total')} className={`text-center font-bold border-l border-gray-200 dark:border-gray-700 ${thClass('total')}`}>
-                      Final Total <SortIcon col="total" /><br /><span className="text-xs font-normal text-gray-400">(100%)</span>
+                      {settings?.finalTotalLabel || 'Final Total'} <SortIcon col="total" /><br /><span className="text-xs font-normal text-gray-400">(100%)</span>
                     </th>
                   </tr>
                 </thead>

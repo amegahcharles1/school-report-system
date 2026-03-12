@@ -31,12 +31,35 @@ model SchoolSettings {
   showPositions      Boolean  @default(true)
   showAverages      Boolean  @default(true)
 
-  // Custom Labels for Marks Entry Columns
+  // Custom Labels for Marks Entry & Reports
   test1Label        String   @default("Test 1")
   assignment1Label  String   @default("Assign 1")
   test2Label        String   @default("Test 2")
   assignment2Label  String   @default("Assign 2")
   examLabel         String   @default("Exam")
+  
+  // Table Headers & General Terms
+  studentLabel      String   @default("Student Name")
+  subjectLabel      String   @default("Subject of Learning")
+  caSubtotalLabel   String   @default("CA Subtotal")
+  caWeightLabel     String   @default("CA")
+  examWeightLabel   String   @default("Exam")
+  finalTotalLabel   String   @default("Final Total")
+  gradeLabel        String   @default("Grade")
+  remarksLabel      String   @default("Remarks / Comment")
+  
+  // Role Labels
+  classTeacherLabel String   @default("Class Teacher")
+  headTeacherLabel  String   @default("Head Teacher")
+  
+  // Statistic Labels
+  totalMarksLabel   String   @default("Total Marks")
+  averageLabel      String   @default("Average %")
+  positionLabel     String   @default("Class Position")
+  classAverageLabel String   @default("Class Average")
+  highestScoreLabel String   @default("Highest Score")
+  lowestScoreLabel  String   @default("Lowest Score")
+  
   columnWidth       Int      @default(100)
   
   teacherRemark     String   @default("")
@@ -105,7 +128,7 @@ model Class {
   id                 String              @id @default(cuid())
   name               String              @unique // e.g., "JHS 1"
   classTeacherId     String?             // Oversight role for JHS 1
-  classTeacher       User?               @relation("ClassTeacher", fields: [classTeacherId], references: [id])
+  classTeacher       User?               @relation("ClassTeacher", fields: [classTeacherId], references: [id], onDelete: SetNull)
   students           Student[]
   subjectAssignments SubjectAssignment[]
   teacherAssignments TeacherAssignment[]
@@ -174,8 +197,8 @@ model Assessment {
   student     Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   subject     Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   term        Term         @relation(fields: [termId], references: [id], onDelete: Cascade)
-  createdBy   User?        @relation("AssessmentCreator", fields: [createdById], references: [id])
-  updatedBy   User?        @relation("AssessmentUpdater", fields: [updatedById], references: [id])
+  createdBy   User?        @relation("AssessmentCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy   User?        @relation("AssessmentUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
   audits      AssessmentAudit[]
 
   createdAt   DateTime     @default(now())
@@ -188,14 +211,14 @@ model Assessment {
 model AssessmentAudit {
   id             String     @id @default(cuid())
   assessmentId   String
-  modifiedById   String
+  modifiedById   String?
   field          String     // "test1", "assignment1", "test2", "assignment2", "examScore", "status"
   oldValue       Float?
   newValue       Float?
   reason         String?    // e.g "grading correction"
   
   assessment     Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  modifiedBy     User       @relation("AuditModifier", fields: [modifiedById], references: [id])
+  modifiedBy     User?      @relation("AuditModifier", fields: [modifiedById], references: [id], onDelete: SetNull)
   
   createdAt      DateTime   @default(now())
 }
