@@ -214,28 +214,28 @@ export default function MarksEntryPage() {
                     <th onClick={() => handleSort('name')} className={`sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 w-48 ${thClass('name')}`}>
                       Student Name <SortIcon col="name" />
                     </th>
-                    <th onClick={() => handleSort('test1')} className={`text-center ${thClass('test1')}`}>
-                      Test 1 <SortIcon col="test1" /><br /><span className="text-xs font-normal text-gray-400">(25)</span>
+                    <th onClick={() => handleSort('test1')} className={`text-center ${thClass('test1')}`} style={{ minWidth: settings?.columnWidth || 100 }}>
+                      {settings?.test1Label || 'Test 1'} <SortIcon col="test1" /><br /><span className="text-xs font-normal text-gray-400">(25)</span>
                     </th>
-                    <th onClick={() => handleSort('assign1')} className={`text-center ${thClass('assign1')}`}>
-                      Assign 1 <SortIcon col="assign1" /><br /><span className="text-xs font-normal text-gray-400">(25)</span>
+                    <th onClick={() => handleSort('assign1')} className={`text-center ${thClass('assign1')}`} style={{ minWidth: settings?.columnWidth || 100 }}>
+                      {settings?.assignment1Label || 'Assign 1'} <SortIcon col="assign1" /><br /><span className="text-xs font-normal text-gray-400">(25)</span>
                     </th>
-                    <th onClick={() => handleSort('test2')} className={`text-center ${thClass('test2')}`}>
-                      Test 2 <SortIcon col="test2" /><br /><span className="text-xs font-normal text-gray-400">(25)</span>
+                    <th onClick={() => handleSort('test2')} className={`text-center ${thClass('test2')}`} style={{ minWidth: settings?.columnWidth || 100 }}>
+                      {settings?.test2Label || 'Test 2'} <SortIcon col="test2" /><br /><span className="text-xs font-normal text-gray-400">(25)</span>
                     </th>
-                    <th onClick={() => handleSort('assign2')} className={`text-center ${thClass('assign2')}`}>
-                      Assign 2 <SortIcon col="assign2" /><br /><span className="text-xs font-normal text-gray-400">(25)</span>
+                    <th onClick={() => handleSort('assign2')} className={`text-center ${thClass('assign2')}`} style={{ minWidth: settings?.columnWidth || 100 }}>
+                      {settings?.assignment2Label || 'Assign 2'} <SortIcon col="assign2" /><br /><span className="text-xs font-normal text-gray-400">(25)</span>
                     </th>
-                    <th onClick={() => handleSort('caSubtotal')} className={`text-center bg-blue-50/50 dark:bg-blue-900/10 ${thClass('caSubtotal')}`}>
+                    <th onClick={() => handleSort('caSubtotal')} className={`text-center bg-blue-50/50 dark:bg-blue-900/10 ${thClass('caSubtotal')}`} style={{ minWidth: 100 }}>
                       CA Subtotal <SortIcon col="caSubtotal" /><br /><span className="text-xs font-normal text-gray-400">(100)</span>
                     </th>
-                    <th onClick={() => handleSort('ca40')} className={`text-center text-blue-600 ${thClass('ca40')}`}>
+                    <th onClick={() => handleSort('ca40')} className={`text-center text-blue-600 ${thClass('ca40')}`} style={{ minWidth: 80 }}>
                       CA {settings?.caWeight || 40}% <SortIcon col="ca40" /><br /><span className="text-xs font-normal text-blue-400">({settings?.caWeight || 40})</span>
                     </th>
-                    <th onClick={() => handleSort('exam')} className={`text-center border-l border-gray-200 dark:border-gray-700 ${thClass('exam')}`}>
-                      Exam <SortIcon col="exam" /><br /><span className="text-xs font-normal text-gray-400">(100)</span>
+                    <th onClick={() => handleSort('exam')} className={`text-center border-l border-gray-200 dark:border-gray-700 ${thClass('exam')}`} style={{ minWidth: settings?.columnWidth || 100 }}>
+                      {settings?.examLabel || 'Exam'} <SortIcon col="exam" /><br /><span className="text-xs font-normal text-gray-400">(100)</span>
                     </th>
-                    <th onClick={() => handleSort('exam60')} className={`text-center text-blue-600 ${thClass('exam60')}`}>
+                    <th onClick={() => handleSort('exam60')} className={`text-center text-blue-600 ${thClass('exam60')}`} style={{ minWidth: 80 }}>
                       Exam {settings?.examWeight || 60}% <SortIcon col="exam60" /><br /><span className="text-xs font-normal text-blue-400">({settings?.examWeight || 60})</span>
                     </th>
                     <th onClick={() => handleSort('total')} className={`text-center font-bold border-l border-gray-200 dark:border-gray-700 ${thClass('total')}`}>
@@ -269,24 +269,24 @@ export default function MarksEntryPage() {
                               )}
                             </div>
                           </td>
-                          <td className="p-1">
+                          <td className="p-1" style={{ minWidth: settings?.columnWidth || 100 }}>
                             <input type="number" min="0" max="25" step="0.1" value={m.test1 || ''} onChange={e => handleMarkChange(m.studentId, 'test1', e.target.value)} className="w-full text-center p-2 border border-transparent hover:border-gray-300 focus:border-blue-500 rounded bg-transparent focus:bg-white dark:focus:bg-gray-800 outline-none transition-all" />
                           </td>
-                          <td className="p-1">
+                          <td className="p-1" style={{ minWidth: settings?.columnWidth || 100 }}>
                             <input type="number" min="0" max="25" step="0.1" value={m.assignment1 || ''} onChange={e => handleMarkChange(m.studentId, 'assignment1', e.target.value)} className="w-full text-center p-2 border border-transparent hover:border-gray-300 focus:border-blue-500 rounded bg-transparent focus:bg-white dark:focus:bg-gray-800 outline-none transition-all" />
                           </td>
-                          <td className="p-1">
+                          <td className="p-1" style={{ minWidth: settings?.columnWidth || 100 }}>
                             <input type="number" min="0" max="25" step="0.1" value={m.test2 || ''} onChange={e => handleMarkChange(m.studentId, 'test2', e.target.value)} className="w-full text-center p-2 border border-transparent hover:border-gray-300 focus:border-blue-500 rounded bg-transparent focus:bg-white dark:focus:bg-gray-800 outline-none transition-all" />
                           </td>
-                          <td className="p-1">
+                          <td className="p-1" style={{ minWidth: settings?.columnWidth || 100 }}>
                             <input type="number" min="0" max="25" step="0.1" value={m.assignment2 || ''} onChange={e => handleMarkChange(m.studentId, 'assignment2', e.target.value)} className="w-full text-center p-2 border border-transparent hover:border-gray-300 focus:border-blue-500 rounded bg-transparent focus:bg-white dark:focus:bg-gray-800 outline-none transition-all" />
                           </td>
-                          <td className="text-center font-medium text-gray-600 dark:text-gray-400 bg-blue-50/50 dark:bg-blue-900/10">{subtotal}</td>
-                          <td className="text-center font-bold text-blue-600 dark:text-blue-400">{caContribution}</td>
-                          <td className="p-1 border-l border-gray-200 dark:border-gray-700">
+                          <td className="text-center font-medium text-gray-600 dark:text-gray-400 bg-blue-50/50 dark:bg-blue-900/10" style={{ minWidth: 100 }}>{subtotal}</td>
+                          <td className="text-center font-bold text-blue-600 dark:text-blue-400" style={{ minWidth: 80 }}>{caContribution}</td>
+                          <td className="p-1 border-l border-gray-200 dark:border-gray-700" style={{ minWidth: settings?.columnWidth || 100 }}>
                             <input type="number" min="0" max="100" step="0.1" value={m.examScore || ''} onChange={e => handleMarkChange(m.studentId, 'examScore', e.target.value)} className="w-full text-center p-2 border border-transparent hover:border-gray-300 focus:border-blue-500 rounded bg-transparent focus:bg-white dark:focus:bg-gray-800 outline-none transition-all font-semibold" />
                           </td>
-                          <td className="text-center font-bold text-blue-600 dark:text-blue-400">{examContribution}</td>
+                          <td className="text-center font-bold text-blue-600 dark:text-blue-400" style={{ minWidth: 80 }}>{examContribution}</td>
                           <td className="text-center font-black text-gray-900 dark:text-white border-l border-gray-200 dark:border-gray-700">{total}</td>
                         </tr>
                         {expandedStudents.includes(m.studentId) && (

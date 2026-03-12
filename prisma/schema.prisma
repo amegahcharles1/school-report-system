@@ -30,6 +30,14 @@ model SchoolSettings {
   gradingStyle      String   @default("Standard")
   showPositions      Boolean  @default(true)
   showAverages      Boolean  @default(true)
+
+  // Custom Labels for Marks Entry Columns
+  test1Label        String   @default("Test 1")
+  assignment1Label  String   @default("Assign 1")
+  test2Label        String   @default("Test 2")
+  assignment2Label  String   @default("Assign 2")
+  examLabel         String   @default("Exam")
+  columnWidth       Int      @default(100)
   
   teacherRemark     String   @default("")
   headteacherRemark String   @default("")

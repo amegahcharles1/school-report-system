@@ -31,6 +31,12 @@ export default function SettingsPage() {
     gradingStyle: 'Standard',
     showPositions: true,
     showAverages: true,
+    test1Label: 'Test 1',
+    assignment1Label: 'Assign 1',
+    test2Label: 'Test 2',
+    assignment2Label: 'Assign 2',
+    examLabel: 'Exam',
+    columnWidth: 100,
   });
 
   const [grades, setGrades] = useState<any[]>([]);
@@ -302,6 +308,57 @@ export default function SettingsPage() {
                       <input type="checkbox" name="showAverages" checked={settings.showAverages} onChange={handleSettingsChange} className="sr-only peer" />
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-800"></div>
                     </label>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-slate-50 dark:bg-slate-800/20 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-6">
+                <Layout className="w-4 h-4" /> Marks Entry Table Customization
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="col-span-1 md:col-span-2 lg:col-span-3">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-sm font-bold text-gray-700 dark:text-gray-300">Minimum Column Width (Pixels)</p>
+                      <p className="text-xs text-gray-500">Adjust the width of assessment cells for better visibility</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm font-black text-slate-800">{settings.columnWidth || 100}px</span>
+                      <input 
+                        type="range" name="columnWidth" min="60" max="250" step="10" 
+                        value={settings.columnWidth || 100} 
+                        onChange={handleSettingsChange}
+                        className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-slate-800" 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700 col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="col-span-3 mb-2">
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Custom Assessment Column Labels</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Column 1 Label</label>
+                    <input type="text" name="test1Label" value={settings.test1Label || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Test 1 / Project" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Column 2 Label</label>
+                    <input type="text" name="assignment1Label" value={settings.assignment1Label || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Assign 1" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Column 3 Label</label>
+                    <input type="text" name="test2Label" value={settings.test2Label || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Test 2" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Column 4 Label</label>
+                    <input type="text" name="assignment2Label" value={settings.assignment2Label || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Assign 2" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Exam Column Label</label>
+                    <input type="text" name="examLabel" value={settings.examLabel || ''} onChange={handleSettingsChange} className="settings-input" placeholder="e.g. Exam" />
                   </div>
                 </div>
               </div>

@@ -174,6 +174,13 @@ export async function GET(
         phone: settings?.schoolPhone ?? '',
         email: settings?.schoolEmail ?? '',
         headTeacherName: settings?.headTeacherName || 'THE HEADTEACHER',
+        test1Label: settings?.test1Label || 'Test 1',
+        assignment1Label: settings?.assignment1Label || 'Assign 1',
+        test2Label: settings?.test2Label || 'Test 2',
+        assignment2Label: settings?.assignment2Label || 'Assign 2',
+        examLabel: settings?.examLabel || 'Exam',
+        caWeight: settings?.caWeight || 40,
+        examWeight: settings?.examWeight || 60,
       },
       remarks: {
         teacher: teacherRemark,

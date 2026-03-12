@@ -39,6 +39,8 @@ export async function PUT(request: NextRequest) {
     // Convert numeric fields from string if necessary
     if (typeof safeData.caWeight === 'string') safeData.caWeight = parseFloat(safeData.caWeight);
     if (typeof safeData.examWeight === 'string') safeData.examWeight = parseFloat(safeData.examWeight);
+    if (typeof safeData.columnWidth === 'string') safeData.columnWidth = parseInt(safeData.columnWidth);
+    if (body.columnWidth !== undefined) safeData.columnWidth = parseInt(String(body.columnWidth));
 
     const settings = await prisma.schoolSettings.upsert({
       where: { id: 'default' },

@@ -189,7 +189,7 @@ export default function ReportCardsPage() {
                 <tr className="bg-slate-800 text-white">
                   <th className="border-2 border-slate-800 px-4 py-4 text-left uppercase text-[11px] font-black w-1/3">Subject of Learning</th>
                   <th className="border-2 border-slate-800 px-2 py-4 text-center uppercase text-[11px] font-black">CA<br/><span className="text-[9px] font-normal opacity-70">({reportData.subjects[0]?.caWeight || 40}%)</span></th>
-                  <th className="border-2 border-slate-800 px-2 py-4 text-center uppercase text-[11px] font-black">Exam<br/><span className="text-[9px] font-normal opacity-70">({reportData.subjects[0]?.examWeight || 60}%)</span></th>
+                  <th className="border-2 border-slate-800 px-2 py-4 text-center uppercase text-[11px] font-black">{reportData.school.examLabel || 'Exam'}<br/><span className="text-[9px] font-normal opacity-70">({reportData.school.examWeight || 60}%)</span></th>
                   <th className="border-2 border-slate-800 px-2 py-4 text-center uppercase text-[11px] font-black bg-slate-700">Total<br/><span className="text-[9px] font-normal opacity-70">(100%)</span></th>
                   <th className="border-2 border-slate-800 px-2 py-4 text-center uppercase text-[11px] font-black">Grade</th>
                   <th className="border-2 border-slate-800 px-4 py-4 text-left uppercase text-[11px] font-black">Remarks / Comment</th>
