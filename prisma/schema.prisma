@@ -1,0 +1,217 @@
+// School Report Card Management System - Database Schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// School configuration and settings
+model SchoolSettings {
+  id                String   @id @default("default")
+  schoolName        String   @default("My School")
+  schoolMotto       String   @default("")
+  schoolAddress     String   @default("")
+  schoolPhone       String   @default("")
+  schoolEmail       String   @default("")
+  logoUrl           String   @default("")
+  currentTermId     String?
+  currentYearId     String?
+  nextTermDate      String   @default("")
+  teacherRemark     String   @default("")
+  headteacherRemark String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// User accounts for authentication
+model User {
+  id                 String              @id @default(cuid())
+  name               String
+  email              String              @unique
+  password           String // hashed password
+  role               String              @default("TEACHER") // "ADMIN" or "TEACHER"
+  teacherAssignments TeacherAssignment[]
+  classOversight     Class[]             @relation("ClassTeacher")
+  createdMarks       Assessment[]        @relation("AssessmentCreator")
+  updatedMarks       Assessment[]        @relation("AssessmentUpdater")
+  auditLogs          AssessmentAudit[]   @relation("AuditModifier")
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+// Links a teacher to specific classes and subjects they manage
+model TeacherAssignment {
+  id        String   @id @default(cuid())
+  userId    String
+  classId   String
+  subjectId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, classId, subjectId])
+}
+
+// Academic year (e.g., 2025/2026)
+model AcademicYear {
+  id        String   @id @default(cuid())
+  name      String   @unique // e.g., "2025/2026"
+  isCurrent Boolean  @default(false)
+  terms     Term[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Term within an academic year
+model Term {
+  id             String       @id @default(cuid())
+  name           String // e.g., "First Term"
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  isCurrent      Boolean      @default(false)
+  assessments    Assessment[]
+  attendances    Attendance[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([name, academicYearId])
+}
+
+// Class/grade level
+model Class {
+  id                 String              @id @default(cuid())
+  name               String              @unique // e.g., "JHS 1"
+  classTeacherId     String?             // Oversight role for JHS 1
+  classTeacher       User?               @relation("ClassTeacher", fields: [classTeacherId], references: [id])
+  students           Student[]
+  subjectAssignments SubjectAssignment[]
+  teacherAssignments TeacherAssignment[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+// Student
+model Student {
+  id          String       @id @default(cuid())
+  firstName   String
+  lastName    String
+  middleName  String       @default("")
+  gender      String       @default("Male") // Male or Female
+  dateOfBirth String       @default("")
+  classId     String
+  class       Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  assessments Assessment[]
+  attendances Attendance[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([firstName, lastName, classId])
+}
+
+// Subject
+model Subject {
+  id                 String              @id @default(cuid())
+  name               String              @unique
+  isCompulsory       Boolean             @default(true)
+  subjectAssignments SubjectAssignment[]
+  teacherAssignments TeacherAssignment[]
+  assessments        Assessment[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+// Links subjects to classes
+model SubjectAssignment {
+  id        String   @id @default(cuid())
+  subjectId String
+  classId   String
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([subjectId, classId])
+}
+
+// Assessment marks for a student in a subject for a term
+model Assessment {
+  id          String       @id @default(cuid())
+  studentId   String
+  subjectId   String
+  termId      String
+  test1       Float        @default(0) // Test 1 score
+  assignment1 Float        @default(0) // Assignment/Project 1
+  test2       Float        @default(0) // Test 2 score
+  assignment2 Float        @default(0) // Assignment/Project 2
+  examScore   Float        @default(0) // Exam score out of 100
+  status      String       @default("IN_PROGRESS") // NOT_STARTED, IN_PROGRESS, COMPLETED
+  createdById String?
+  updatedById String?
+  
+  student     Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject     Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  term        Term         @relation(fields: [termId], references: [id], onDelete: Cascade)
+  createdBy   User?        @relation("AssessmentCreator", fields: [createdById], references: [id])
+  updatedBy   User?        @relation("AssessmentUpdater", fields: [updatedById], references: [id])
+  audits      AssessmentAudit[]
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([studentId, subjectId, termId])
+}
+
+// Audit log for trackable transparency on marks changes
+model AssessmentAudit {
+  id             String     @id @default(cuid())
+  assessmentId   String
+  modifiedById   String
+  field          String     // "test1", "assignment1", "test2", "assignment2", "examScore", "status"
+  oldValue       Float?
+  newValue       Float?
+  reason         String?    // e.g "grading correction"
+  
+  assessment     Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  modifiedBy     User       @relation("AuditModifier", fields: [modifiedById], references: [id])
+  
+  createdAt      DateTime   @default(now())
+}
+
+// Configurable grading system
+model GradeConfig {
+  id       String @id @default(cuid())
+  minScore Float
+  maxScore Float
+  grade    String // e.g., "A"
+  remark   String // e.g., "Excellent"
+
+  @@unique([minScore, maxScore])
+}
+
+// Teacher remark templates
+model RemarkTemplate {
+  id     String @id @default(cuid())
+  type   String // "teacher" or "headteacher"
+  minAvg Float
+  maxAvg Float
+  remark String
+}
+
+// Attendance per student per term
+model Attendance {
+  id          String  @id @default(cuid())
+  studentId   String
+  termId      String
+  totalDays   Int     @default(0)
+  daysPresent Int     @default(0)
+  daysAbsent  Int     @default(0)
+  student     Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  term        Term    @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, termId])
+}
