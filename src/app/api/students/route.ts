@@ -1,6 +1,7 @@
 // API: Students CRUD
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAllowedClassIds } from '@/lib/access';
 
 // GET all students (with optional class/search filters)
 export async function GET(request: NextRequest) {
@@ -9,8 +10,23 @@ export async function GET(request: NextRequest) {
     const classId = searchParams.get('classId');
     const search = searchParams.get('search');
 
+    const allowedClassIds = await getAllowedClassIds();
+
     const where: Record<string, unknown> = {};
-    if (classId) where.classId = classId;
+
+    // Apply class filter - use requested classId only if it's within allowed classes
+    if (classId) {
+      // If allowedClassIds is null (admin), accept any classId
+      // If restricted, check that the requested class is allowed
+      if (allowedClassIds !== null && !allowedClassIds.includes(classId)) {
+        return NextResponse.json([], ); // Return empty - not authorized for this class
+      }
+      where.classId = classId;
+    } else if (allowedClassIds !== null) {
+      // No specific class requested - restrict to allowed classes
+      where.classId = { in: allowedClassIds };
+    }
+
     if (search) {
       where.OR = [
         { firstName: { contains: search } },
@@ -30,6 +46,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch students' }, { status: 500 });
   }
 }
+
 
 // POST create student
 export async function POST(request: NextRequest) {

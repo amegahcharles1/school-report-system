@@ -2,12 +2,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateFinalTotal, getGradeAndRemark } from '@/lib/calculations';
+import { getAllowedClassIds } from '@/lib/access';
 
 export async function GET() {
   try {
-    const totalStudents = await prisma.student.count();
+    const allowedClassIds = await getAllowedClassIds();
+
+    const studentWhere = allowedClassIds !== null ? { classId: { in: allowedClassIds } } : {};
+
+    const totalStudents = await prisma.student.count({ where: studentWhere });
     const totalSubjects = await prisma.subject.count();
-    const totalClasses = await prisma.class.count();
+    const totalClasses = allowedClassIds !== null
+      ? allowedClassIds.length
+      : await prisma.class.count();
+
 
     // Get current term
     const settings = await prisma.schoolSettings.findUnique({ where: { id: 'default' } });
@@ -25,7 +33,10 @@ export async function GET() {
 
     if (currentTermId) {
       const gradeConfigs = await prisma.gradeConfig.findMany();
-      const students = await prisma.student.findMany({ include: { assessments: { where: { termId: currentTermId } } } });
+      const students = await prisma.student.findMany({ 
+        where: studentWhere,
+        include: { assessments: { where: { termId: currentTermId } } } 
+      });
 
       const studentAverages: { name: string; average: number }[] = [];
 

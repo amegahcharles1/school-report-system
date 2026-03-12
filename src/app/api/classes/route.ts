@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAllowedClassIds } from '@/lib/access';
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    const userRole = (session?.user as any)?.role;
-    const userId = (session?.user as any)?.id;
+    const allowedClassIds = await getAllowedClassIds();
 
-    const whereClause = userRole === 'TEACHER' ? {
-      OR: [
-        { teacherAssignments: { some: { userId } } },
-        { classTeacherId: userId }
-      ]
-    } : {};
+    const whereClause = allowedClassIds !== null
+      ? { id: { in: allowedClassIds } }
+      : {};
 
     const classes = await prisma.class.findMany({
       where: whereClause,

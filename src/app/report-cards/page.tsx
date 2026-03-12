@@ -166,7 +166,7 @@ export default function ReportCardsPage() {
             <div className="flex"><span className="font-bold w-32 uppercase text-xs text-indigo-900">Class:</span> <span className="font-medium border-b border-gray-400 border-dotted flex-1 font-bold">{reportData.student.className}</span></div>
             <div className="flex"><span className="font-bold w-32 uppercase text-xs text-indigo-900">Academic Year:</span> <span className="font-medium border-b border-gray-400 border-dotted flex-1">{reportData.academicYear}</span></div>
             <div className="flex"><span className="font-bold w-32 uppercase text-xs text-indigo-900">Gender:</span> <span className="font-medium border-b border-gray-400 border-dotted flex-1">{reportData.student.gender}</span></div>
-            <div className="flex"><span className="font-bold w-32 uppercase text-xs text-indigo-900">Attendance:</span> <span className="font-medium border-b border-gray-400 border-dotted flex-1">{reportData.attendance.daysPresent} / {reportData.attendance.totalDays} days</span></div>
+
           </div>
 
           {/* Marks Table */}
@@ -255,11 +255,7 @@ export default function ReportCardsPage() {
             </div>
           </div>
 
-          <div className="flex justify-between items-end mt-12 pt-8 border-t border-gray-300">
-            <div>
-              <p className="text-xs font-bold uppercase mb-1">Next Term Begins:</p>
-              <p className="font-medium px-4 py-1 bg-indigo-50 border border-indigo-100 rounded inline-block">{reportData.nextTermDate}</p>
-            </div>
+          <div className="flex justify-end items-end mt-12 pt-8 border-t border-gray-300">
             <div className="text-center w-48">
               <div className="border-b border-black mb-2 h-8"></div>
               <p className="text-xs uppercase font-bold text-gray-500">Signature / Stamp</p>
