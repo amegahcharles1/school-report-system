@@ -162,6 +162,18 @@ export default function Sidebar() {
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <><ChevronLeft className="w-4 h-4" /><span>Collapse</span></>}
         </button>
+
+        {/* Copyright */}
+        {!collapsed && (
+          <div className="mt-2 px-3 py-2 text-center">
+            <p className="text-[10px] text-gray-300 dark:text-gray-600 leading-tight">
+              © {new Date().getFullYear()} Designed & Built by
+            </p>
+            <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500">
+              Amegah Charles Isaiah
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

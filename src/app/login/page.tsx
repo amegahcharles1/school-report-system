@@ -131,10 +131,14 @@ export default function LoginPage() {
           </form>
         </div>
         
-        {/* Footer info */}
-        <p className="mt-8 text-center text-sm text-gray-400 font-medium">
-          Protected by Secure Encryption
-        </p>
+        {/* Footer */}
+        <div className="mt-8 text-center space-y-1">
+          <p className="text-sm text-gray-400 font-medium">🔒 Protected by Secure Encryption</p>
+          <p className="text-xs text-gray-300 dark:text-gray-600">
+            © {new Date().getFullYear()} Designed & Built by{' '}
+            <span className="font-semibold text-gray-400">Amegah Charles Isaiah</span>
+          </p>
+        </div>
       </div>
     </div>
   );
