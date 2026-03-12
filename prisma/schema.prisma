@@ -21,6 +21,16 @@ model SchoolSettings {
   currentTermId     String?
   currentYearId     String?
   nextTermDate      String   @default("")
+  
+  // New Administrative controls
+  reportTitle       String   @default("STUDENT PROGRESS REPORT")
+  headTeacherName   String   @default("ADMINISTRATOR")
+  caWeight          Float    @default(40) // Percentage contribution of CA
+  examWeight         Float    @default(60) // Percentage contribution of Exam
+  gradingStyle      String   @default("Standard")
+  showPositions      Boolean  @default(true)
+  showAverages      Boolean  @default(true)
+  
   teacherRemark     String   @default("")
   headteacherRemark String   @default("")
   createdAt         DateTime @default(now())

@@ -10,36 +10,38 @@ export function calculateCASubtotal(
   test2: number,
   assignment2: number
 ): number {
-  return test1 + assignment1 + test2 + assignment2;
+  return (test1 || 0) + (assignment1 || 0) + (test2 || 0) + (assignment2 || 0);
 }
 
 /**
- * Calculate CA contribution (40% of subtotal)
+ * Calculate CA contribution based on weight (default 40%)
  */
-export function calculateCAContribution(subtotal: number): number {
-  return Math.round((subtotal * 0.4) * 100) / 100;
+export function calculateCAContribution(subtotal: number, caWeight: number = 40): number {
+  return Math.round((subtotal * (caWeight / 100)) * 100) / 100;
 }
 
 /**
- * Calculate exam contribution (60% of exam score)
+ * Calculate exam contribution based on weight (default 60%)
  */
-export function calculateExamContribution(examScore: number): number {
-  return Math.round((examScore * 0.6) * 100) / 100;
+export function calculateExamContribution(examScore: number, examWeight: number = 60): number {
+  return Math.round((examScore * (examWeight / 100)) * 100) / 100;
 }
 
 /**
- * Calculate final total (CA 40% + Exam 60%)
+ * Calculate final total using specific weights
  */
 export function calculateFinalTotal(
   test1: number,
   assignment1: number,
   test2: number,
   assignment2: number,
-  examScore: number
+  examScore: number,
+  caWeight: number = 40,
+  examWeight: number = 60
 ): number {
   const subtotal = calculateCASubtotal(test1, assignment1, test2, assignment2);
-  const caContribution = calculateCAContribution(subtotal);
-  const examContribution = calculateExamContribution(examScore);
+  const caContribution = calculateCAContribution(subtotal, caWeight);
+  const examContribution = calculateExamContribution(examScore, examWeight);
   return Math.round((caContribution + examContribution) * 100) / 100;
 }
 
@@ -50,6 +52,15 @@ export function getGradeAndRemark(
   total: number,
   gradeConfigs: { minScore: number; maxScore: number; grade: string; remark: string }[]
 ): { grade: string; remark: string } {
+  if (!gradeConfigs || gradeConfigs.length === 0) {
+    // Default fallback to prevent crash
+    if (total >= 80) return { grade: 'A', remark: 'Excellent' };
+    if (total >= 70) return { grade: 'B', remark: 'Very Good' };
+    if (total >= 60) return { grade: 'C', remark: 'Good' };
+    if (total >= 50) return { grade: 'D', remark: 'Pass' };
+    return { grade: 'F', remark: 'Fail' };
+  }
+
   const sorted = [...gradeConfigs].sort((a, b) => b.minScore - a.minScore);
   for (const config of sorted) {
     if (total >= config.minScore && total <= config.maxScore) {
@@ -71,6 +82,7 @@ export function calculatePositions(
   let currentRank = 1;
 
   for (let i = 0; i < sorted.length; i++) {
+    // If not first and total is different from previous, update rank to current index + 1
     if (i > 0 && sorted[i].total < sorted[i - 1].total) {
       currentRank = i + 1;
     }
@@ -84,6 +96,7 @@ export function calculatePositions(
  * Get position suffix (1st, 2nd, 3rd, 4th, etc.)
  */
 export function getPositionSuffix(position: number): string {
+  if (!position || position <= 0) return "N/A";
   const j = position % 10;
   const k = position % 100;
   if (j === 1 && k !== 11) return `${position}st`;

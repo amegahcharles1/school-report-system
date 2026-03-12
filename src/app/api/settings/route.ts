@@ -1,6 +1,7 @@
-// API: Settings CRUD
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -25,10 +26,19 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user as any).role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
     const body = await request.json();
     
     // Remove nested relational objects that Prisma upsert will reject
-    const { currentTerm, ...safeData } = body;
+    const { currentTerm, id, createdAt, updatedAt, ...safeData } = body;
+
+    // Convert numeric fields from string if necessary
+    if (typeof safeData.caWeight === 'string') safeData.caWeight = parseFloat(safeData.caWeight);
+    if (typeof safeData.examWeight === 'string') safeData.examWeight = parseFloat(safeData.examWeight);
 
     const settings = await prisma.schoolSettings.upsert({
       where: { id: 'default' },

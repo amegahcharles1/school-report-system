@@ -35,8 +35,14 @@ export async function POST(request: NextRequest) {
     }
 
     const cls = await prisma.class.create({
-      data: { name },
-      include: { _count: { select: { students: true, subjectAssignments: true } } },
+      data: { 
+        name,
+        classTeacherId: body.classTeacherId || null
+      },
+      include: { 
+        _count: { select: { students: true, subjectAssignments: true } },
+        classTeacher: { select: { name: true } }
+      },
     });
 
     return NextResponse.json(cls, { status: 201 });

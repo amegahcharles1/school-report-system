@@ -1,7 +1,13 @@
 // API: Report Card data for a single student
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { calculateFinalTotal, getGradeAndRemark, calculatePositions, getPositionSuffix, generateAutoRemark } from '@/lib/calculations';
+import { 
+  calculateFinalTotal, 
+  getGradeAndRemark, 
+  calculatePositions, 
+  getPositionSuffix, 
+  generateAutoRemark 
+} from '@/lib/calculations';
 
 export async function GET(
   request: NextRequest,
@@ -14,7 +20,7 @@ export async function GET(
 
     const student = await prisma.student.findUnique({
       where: { id: studentId },
-      include: { class: true },
+      include: { class: { include: { classTeacher: true } } },
     });
 
     if (!student) {
@@ -28,6 +34,10 @@ export async function GET(
     if (!actualTermId) {
       return NextResponse.json({ error: 'No term selected' }, { status: 400 });
     }
+
+    // Configuration weights
+    const caWeight = settings?.caWeight ?? 40;
+    const examWeight = settings?.examWeight ?? 60;
 
     // Get term and academic year info
     const term = await prisma.term.findUnique({
@@ -52,11 +62,11 @@ export async function GET(
       include: { subject: true },
     });
 
-    // Calculate subject results
+    // Calculate subject results using dynamic weights
     const subjectResults = assessments.map((a) => {
       const caSubtotal = a.test1 + a.assignment1 + a.test2 + a.assignment2;
-      const caContribution = Math.round(caSubtotal * 0.4 * 100) / 100;
-      const examContribution = Math.round(a.examScore * 0.6 * 100) / 100;
+      const caContribution = Math.round(caSubtotal * (caWeight / 100) * 100) / 100;
+      const examContribution = Math.round(a.examScore * (examWeight / 100) * 100) / 100;
       const finalTotal = Math.round((caContribution + examContribution) * 100) / 100;
       const { grade, remark } = getGradeAndRemark(finalTotal, gradeConfigs);
 
@@ -68,8 +78,10 @@ export async function GET(
         test2: a.test2,
         assignment2: a.assignment2,
         caSubtotal,
+        caWeight,
         caContribution,
         examScore: a.examScore,
+        examWeight,
         examContribution,
         finalTotal,
         grade,
@@ -90,7 +102,7 @@ export async function GET(
 
     const studentAverages = allStudents.map((s) => {
       const totals = s.assessments.map((a) =>
-        calculateFinalTotal(a.test1, a.assignment1, a.test2, a.assignment2, a.examScore)
+        calculateFinalTotal(a.test1, a.assignment1, a.test2, a.assignment2, a.examScore, caWeight, examWeight)
       );
       const avg = totals.length > 0 ? totals.reduce((sum, t) => sum + t, 0) / totals.length : 0;
       return { id: s.id, total: Math.round(avg * 100) / 100 };
@@ -98,7 +110,6 @@ export async function GET(
 
     const positions = calculatePositions(studentAverages);
     const position = positions.get(studentId) ?? 0;
-
     const allAverages = studentAverages.map((sa) => sa.total);
 
     // Auto-generate remarks
@@ -123,6 +134,7 @@ export async function GET(
     }
 
     const reportCard = {
+      reportTitle: settings?.reportTitle || 'STUDENT PROGRESS REPORT',
       student: {
         id: student.id,
         firstName: student.firstName,
@@ -130,6 +142,7 @@ export async function GET(
         middleName: student.middleName,
         gender: student.gender,
         className: student.class.name,
+        classTeacherKey: student.class.classTeacher?.name || 'NAME NOT ASSIGNED',
       },
       term: term?.name ?? '',
       academicYear: term?.academicYear?.name ?? '',
@@ -140,6 +153,8 @@ export async function GET(
       },
       subjects: subjectResults,
       summary: {
+        showPositions: settings?.showPositions ?? true,
+        showAverages: settings?.showAverages ?? true,
         totalMarks: Math.round(totalMarks * 100) / 100,
         average,
         position,
@@ -152,18 +167,19 @@ export async function GET(
           : 0,
       },
       school: {
-        name: settings?.schoolName ?? '',
+        name: settings?.schoolName ?? 'MY SCHOOL',
         motto: settings?.schoolMotto ?? '',
         address: settings?.schoolAddress ?? '',
         logoUrl: settings?.logoUrl ?? '',
         phone: settings?.schoolPhone ?? '',
         email: settings?.schoolEmail ?? '',
+        headTeacherName: settings?.headTeacherName || 'THE HEADTEACHER',
       },
       remarks: {
         teacher: teacherRemark,
         headteacher: headteacherRemark,
       },
-      nextTermDate: settings?.nextTermDate ?? '',
+      footerMessage: settings?.reportCardMessage ?? '',
     };
 
     return NextResponse.json(reportCard);

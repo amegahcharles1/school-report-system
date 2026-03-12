@@ -9,10 +9,17 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
+    const { name, classTeacherId } = body;
     const cls = await prisma.class.update({
       where: { id },
-      data: body,
-      include: { _count: { select: { students: true, subjectAssignments: true } } },
+      data: {
+        name,
+        classTeacherId: classTeacherId || null
+      },
+      include: { 
+        _count: { select: { students: true, subjectAssignments: true } },
+        classTeacher: { select: { name: true } }
+      },
     });
     return NextResponse.json(cls);
   } catch (error) {

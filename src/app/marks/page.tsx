@@ -15,6 +15,7 @@ export default function MarksEntryPage() {
   const [terms, setTerms] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [marks, setMarks] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
 
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
@@ -33,11 +34,13 @@ export default function MarksEntryPage() {
       fetch('/api/classes').then(res => res.json()),
       fetch('/api/terms').then(res => res.json()),
       fetch('/api/subjects').then(res => res.json()),
-    ]).then(([clsData, termData, subjData]) => {
+      fetch('/api/settings').then(res => res.json()),
+    ]).then(([clsData, termData, subjData, settData]) => {
       setClasses(clsData);
       const activeTerms = termData.filter((t: any) => t.isCurrent);
       setTerms(activeTerms.length > 0 ? activeTerms : termData);
       setSubjects(subjData);
+      setSettings(settData);
       if (clsData.length > 0) setSelectedClass(clsData[0].id);
       if (activeTerms.length > 0) setSelectedTerm(activeTerms[0].id);
       else if (termData.length > 0) setSelectedTerm(termData[0].id);
@@ -227,13 +230,13 @@ export default function MarksEntryPage() {
                       CA Subtotal <SortIcon col="caSubtotal" /><br /><span className="text-xs font-normal text-gray-400">(100)</span>
                     </th>
                     <th onClick={() => handleSort('ca40')} className={`text-center text-blue-600 ${thClass('ca40')}`}>
-                      CA 40% <SortIcon col="ca40" /><br /><span className="text-xs font-normal text-blue-400">(40)</span>
+                      CA {settings?.caWeight || 40}% <SortIcon col="ca40" /><br /><span className="text-xs font-normal text-blue-400">({settings?.caWeight || 40})</span>
                     </th>
                     <th onClick={() => handleSort('exam')} className={`text-center border-l border-gray-200 dark:border-gray-700 ${thClass('exam')}`}>
                       Exam <SortIcon col="exam" /><br /><span className="text-xs font-normal text-gray-400">(100)</span>
                     </th>
                     <th onClick={() => handleSort('exam60')} className={`text-center text-blue-600 ${thClass('exam60')}`}>
-                      Exam 60% <SortIcon col="exam60" /><br /><span className="text-xs font-normal text-blue-400">(60)</span>
+                      Exam {settings?.examWeight || 60}% <SortIcon col="exam60" /><br /><span className="text-xs font-normal text-blue-400">({settings?.examWeight || 60})</span>
                     </th>
                     <th onClick={() => handleSort('total')} className={`text-center font-bold border-l border-gray-200 dark:border-gray-700 ${thClass('total')}`}>
                       Final Total <SortIcon col="total" /><br /><span className="text-xs font-normal text-gray-400">(100%)</span>
@@ -243,9 +246,11 @@ export default function MarksEntryPage() {
                 <tbody>
                   {sortedMarks.map((m, idx) => {
                     const subtotal = calculateSubtotal(m);
-                    const ca40 = Math.round(subtotal * 0.4 * 100) / 100;
-                    const exam60 = Math.round((m.examScore || 0) * 0.6 * 100) / 100;
-                    const total = Math.round((ca40 + exam60) * 100) / 100;
+                    const caWeight = settings?.caWeight || 40;
+                    const examWeight = settings?.examWeight || 60;
+                    const caContribution = Math.round(subtotal * (caWeight / 100) * 100) / 100;
+                    const examContribution = Math.round((m.examScore || 0) * (examWeight / 100) * 100) / 100;
+                    const total = Math.round((caContribution + examContribution) * 100) / 100;
 
                     return (
                       <React.Fragment key={m.studentId}>
@@ -277,11 +282,11 @@ export default function MarksEntryPage() {
                             <input type="number" min="0" max="25" step="0.1" value={m.assignment2 || ''} onChange={e => handleMarkChange(m.studentId, 'assignment2', e.target.value)} className="w-full text-center p-2 border border-transparent hover:border-gray-300 focus:border-blue-500 rounded bg-transparent focus:bg-white dark:focus:bg-gray-800 outline-none transition-all" />
                           </td>
                           <td className="text-center font-medium text-gray-600 dark:text-gray-400 bg-blue-50/50 dark:bg-blue-900/10">{subtotal}</td>
-                          <td className="text-center font-bold text-blue-600 dark:text-blue-400">{ca40}</td>
+                          <td className="text-center font-bold text-blue-600 dark:text-blue-400">{caContribution}</td>
                           <td className="p-1 border-l border-gray-200 dark:border-gray-700">
                             <input type="number" min="0" max="100" step="0.1" value={m.examScore || ''} onChange={e => handleMarkChange(m.studentId, 'examScore', e.target.value)} className="w-full text-center p-2 border border-transparent hover:border-gray-300 focus:border-blue-500 rounded bg-transparent focus:bg-white dark:focus:bg-gray-800 outline-none transition-all font-semibold" />
                           </td>
-                          <td className="text-center font-bold text-blue-600 dark:text-blue-400">{exam60}</td>
+                          <td className="text-center font-bold text-blue-600 dark:text-blue-400">{examContribution}</td>
                           <td className="text-center font-black text-gray-900 dark:text-white border-l border-gray-200 dark:border-gray-700">{total}</td>
                         </tr>
                         {expandedStudents.includes(m.studentId) && (
