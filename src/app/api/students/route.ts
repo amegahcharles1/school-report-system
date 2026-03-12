@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     const students = await prisma.student.findMany({
       where,
       include: { class: true },
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      orderBy: [{ displayOrder: 'asc' }, { lastName: 'asc' }, { firstName: 'asc' }],
     });
 
     return NextResponse.json(students);

@@ -97,17 +97,18 @@ model Class {
 
 // Student
 model Student {
-  id          String       @id @default(cuid())
-  firstName   String
-  lastName    String
-  middleName  String       @default("")
-  gender      String       @default("Male") // Male or Female
-  dateOfBirth String       @default("")
-  classId     String
-  class       Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
-  assessments Assessment[]
-  attendances Attendance[]
-  createdAt   DateTime     @default(now())
+  id           String       @id @default(cuid())
+  firstName    String
+  lastName     String
+  middleName   String       @default("")
+  gender       String       @default("Male") // Male or Female
+  dateOfBirth  String       @default("")
+  displayOrder Int          @default(9999) // Custom sort order (lower = first)
+  classId      String
+  class        Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  assessments  Assessment[]
+  attendances  Attendance[]
+  createdAt    DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   @@unique([firstName, lastName, classId])
