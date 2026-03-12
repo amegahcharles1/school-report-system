@@ -2,6 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAllowedClassIds } from '@/lib/access';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+const CHARLES_EMAIL = 'charles@school.com';
 
 // GET all students (with optional class/search filters)
 export async function GET(request: NextRequest) {
@@ -10,20 +14,20 @@ export async function GET(request: NextRequest) {
     const classId = searchParams.get('classId');
     const search = searchParams.get('search');
 
+    const session = await getServerSession(authOptions);
+    const role = (session?.user as any)?.role;
+    const email = (session?.user as any)?.email;
+
     const allowedClassIds = await getAllowedClassIds();
 
     const where: Record<string, unknown> = {};
 
-    // Apply class filter - use requested classId only if it's within allowed classes
     if (classId) {
-      // If allowedClassIds is null (admin), accept any classId
-      // If restricted, check that the requested class is allowed
       if (allowedClassIds !== null && !allowedClassIds.includes(classId)) {
-        return NextResponse.json([], ); // Return empty - not authorized for this class
+        return NextResponse.json([]);
       }
       where.classId = classId;
     } else if (allowedClassIds !== null) {
-      // No specific class requested - restrict to allowed classes
       where.classId = { in: allowedClassIds };
     }
 
@@ -34,10 +38,16 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // Admin and Charles see book order; all other teachers see A-Z
+    const useBookOrder = role === 'ADMIN' || email === CHARLES_EMAIL;
+    const orderBy = useBookOrder
+      ? [{ displayOrder: 'asc' as const }, { lastName: 'asc' as const }, { firstName: 'asc' as const }]
+      : [{ lastName: 'asc' as const }, { firstName: 'asc' as const }];
+
     const students = await prisma.student.findMany({
       where,
       include: { class: true },
-      orderBy: [{ displayOrder: 'asc' }, { lastName: 'asc' }, { firstName: 'asc' }],
+      orderBy,
     });
 
     return NextResponse.json(students);
@@ -46,6 +56,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch students' }, { status: 500 });
   }
 }
+
 
 
 // POST create student
