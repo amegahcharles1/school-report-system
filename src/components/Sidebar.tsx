@@ -20,6 +20,8 @@ import {
   Moon,
   Sun,
   LogOut,
+  Menu,
+  X,
 } from 'lucide-react';
 
 const navigation = [
@@ -38,6 +40,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
@@ -48,17 +51,22 @@ export default function Sidebar() {
     }
   }, []);
 
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
   if (pathname === '/login') return null;
 
   const role = (session?.user as any)?.role || 'TEACHER';
-  
+
   const filteredNavigation = navigation.filter((item) => {
     if (role === 'TEACHER') {
-      // Teachers shouldn't manage core school structures
       return !['Staff', 'Subjects', 'Classes', 'Settings'].includes(item.name);
     }
-    return true; // Admin sees all
+    return true;
   });
+
+  const bottomNavItems = filteredNavigation.slice(0, 5);
 
   const toggleDarkMode = () => {
     const next = !darkMode;
@@ -71,101 +79,168 @@ export default function Sidebar() {
     }
   };
 
-  return (
-    <aside
-      className={`no-print flex-shrink-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col z-50 transition-all duration-300 ${
-        collapsed ? 'w-[70px]' : 'w-[260px]'
-      }`}
-    >
-      {/* Logo/Brand */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-200 dark:border-gray-800">
-        <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center flex-shrink-0">
-          <GraduationCap className="w-6 h-6 text-white" />
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-100 dark:border-gray-800">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
+          <GraduationCap className="w-5 h-5 text-white" />
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
-            <h1 className="font-bold text-sm text-gray-900 dark:text-white truncate">
-              Report Card
+            <h1 className="font-bold text-sm text-gray-900 dark:text-white truncate tracking-tight">
+              Report Card System
             </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {role === 'ADMIN' ? 'Admin Portal' : 'Teacher Portal'}
+            <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+              {role === 'ADMIN' ? '⚡ Admin Portal' : '📚 Teacher Portal'}
             </p>
           </div>
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
         {filteredNavigation.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative ${
                 isActive
-                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/80 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
               title={collapsed ? item.name : undefined}
             >
               <item.icon
                 className={`w-5 h-5 flex-shrink-0 ${
-                  isActive
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400'
+                  isActive ? 'text-white' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'
                 }`}
               />
-              {!collapsed && <span>{item.name}</span>}
+              {!collapsed && <span className="font-medium">{item.name}</span>}
               {isActive && !collapsed && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white/70" />
               )}
             </Link>
           );
         })}
       </nav>
 
-      {/* Bottom actions */}
-      <div className="p-3 border-t border-gray-200 dark:border-gray-800 space-y-2">
-        {/* User Info (Collapsed) vs Logout */}
+      <div className="p-3 border-t border-gray-100 dark:border-gray-800 space-y-1">
+        {!collapsed && (
+          <div className="px-3 py-2 mb-2 rounded-xl bg-gray-50 dark:bg-gray-800/50 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+              {(session?.user?.name || 'U')[0].toUpperCase()}
+            </div>
+            <div className="overflow-hidden flex-1">
+              <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{session?.user?.name || 'User'}</p>
+              <p className="text-[10px] text-gray-400 truncate">{session?.user?.email}</p>
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={toggleDarkMode}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+          title={collapsed ? (darkMode ? 'Light Mode' : 'Dark Mode') : undefined}
+        >
+          {darkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-gray-400" />}
+          {!collapsed && <span className="text-sm">{darkMode ? 'Light Mode' : 'Dark Mode'}</span>}
+        </button>
+
         <button
           onClick={() => signOut()}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium w-full text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
           title={collapsed ? 'Sign Out' : undefined}
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-4 h-4" />
           {!collapsed && <span>Sign Out</span>}
         </button>
 
-        {/* Dark mode toggle */}
-        <button
-          onClick={toggleDarkMode}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium w-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
-          title={collapsed ? (darkMode ? 'Light Mode' : 'Dark Mode') : undefined}
-        >
-          {darkMode ? (
-            <Sun className="w-5 h-5 text-amber-500" />
-          ) : (
-            <Moon className="w-5 h-5 text-gray-400" />
-          )}
-          {!collapsed && <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>}
-        </button>
-
-        {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium w-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+          className="hidden md:flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium w-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
         >
-          {collapsed ? (
-            <ChevronRight className="w-5 h-5" />
-          ) : (
-            <>
-              <ChevronLeft className="w-5 h-5" />
-              <span>Collapse</span>
-            </>
-          )}
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <><ChevronLeft className="w-4 h-4" /><span>Collapse</span></>}
         </button>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* MOBILE TOP HEADER */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 no-print">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-md">
+            <GraduationCap className="w-4 h-4 text-white" />
+          </div>
+          <span className="font-bold text-sm text-gray-900 dark:text-white">Report Card System</span>
+        </div>
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center"
+        >
+          <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+        </button>
+      </div>
+
+      {/* MOBILE OVERLAY */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* MOBILE DRAWER */}
+      <aside
+        className={`md:hidden fixed top-0 left-0 z-[60] h-full w-72 bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 ease-in-out no-print ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="absolute top-4 right-4 w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center z-10"
+        >
+          <X className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+        </button>
+        <SidebarContent />
+      </aside>
+
+      {/* DESKTOP SIDEBAR */}
+      <aside
+        className={`no-print hidden md:flex flex-shrink-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex-col z-50 transition-all duration-300 ${
+          collapsed ? 'w-[70px]' : 'w-[260px]'
+        }`}
+      >
+        <SidebarContent />
+      </aside>
+
+      {/* MOBILE BOTTOM NAV */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-1 py-2 no-print">
+        {bottomNavItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
+                isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="text-[9px] font-semibold">{item.name.split(' ')[0]}</span>
+            </Link>
+          );
+        })}
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-gray-400 dark:text-gray-500"
+        >
+          <Menu className="w-5 h-5" />
+          <span className="text-[9px] font-semibold">More</span>
+        </button>
+      </nav>
+    </>
   );
 }
