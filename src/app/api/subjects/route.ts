@@ -5,9 +5,10 @@ import { authOptions } from "@/lib/auth";
 
 export async function GET() {
   try {
+    type SessionUser = { role?: string; id?: string };
     const session = await getServerSession(authOptions);
-    const userRole = (session?.user as any)?.role;
-    const userId = (session?.user as any)?.id;
+    const userRole = (session?.user as SessionUser)?.role;
+    const userId = (session?.user as SessionUser)?.id;
 
     const whereClause = userRole === 'TEACHER' ? {
       OR: [

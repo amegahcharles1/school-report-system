@@ -1,4 +1,5 @@
 // API: Dashboard Statistics
+import type { Assessment } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateFinalTotal, getGradeAndRemark } from '@/lib/calculations';
@@ -25,7 +26,7 @@ export async function GET() {
     let classAverage = 0;
     let passRate = 0;
     let failRate = 0;
-    let gradeDistribution = [
+    const gradeDistribution = [
       { grade: 'A', count: 0 }, { grade: 'B', count: 0 },
       { grade: 'C', count: 0 }, { grade: 'D', count: 0 },
       { grade: 'E', count: 0 }, { grade: 'F', count: 0 }
@@ -42,7 +43,7 @@ export async function GET() {
 
       for (const student of students) {
         if (student.assessments.length === 0) continue;
-        const totals = student.assessments.map((a: any) =>
+        const totals = student.assessments.map((a: Assessment) =>
           calculateFinalTotal(a.test1, a.assignment1, a.test2, a.assignment2, a.examScore)
         );
         
@@ -72,7 +73,7 @@ export async function GET() {
     }
     
     // Fetch recent activity
-    const recentActivity = await (prisma as any).assessmentAudit.findMany({
+    const recentActivity = await prisma.assessmentAudit.findMany({
       take: 6,
       orderBy: { createdAt: 'desc' },
       include: {

@@ -11,8 +11,9 @@ import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 
 export default function ClassesPage() {
+  type SessionUser = { role?: string };
   const { data: session } = useSession();
-  const isAdmin = (session?.user as any)?.role === 'ADMIN';
+  const isAdmin = (session?.user as SessionUser)?.role === 'ADMIN';
   const queryClient = useQueryClient();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,7 +32,9 @@ export default function ClassesPage() {
     enabled: isAdmin
   });
 
-  const { data: teachers = [], isLoading: isLoadingTeachers } = useQuery({
+  type Teacher = { id: string; name: string; email: string };
+
+  const { data: teachers = [], isLoading: isLoadingTeachers } = useQuery<Teacher[]>({
     queryKey: ['staff'],
     queryFn: async () => {
       const res = await fetch('/api/staff');
@@ -42,8 +45,10 @@ export default function ClassesPage() {
   });
 
   // Mutations
+  type ClassPayload = { name: string; classTeacherId?: string | null };
+
   const saveMutation = useMutation({
-    mutationFn: async (payload: any) => {
+    mutationFn: async (payload: ClassPayload) => {
       const url = editingId ? `/api/classes/${editingId}` : '/api/classes';
       const method = editingId ? 'PUT' : 'POST';
       const res = await fetch(url, {
@@ -85,7 +90,10 @@ export default function ClassesPage() {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (cls: any) => {
+  type ClassEntry = { id: string; name: string; classTeacherId?: string | null };
+  type ClassItem = ClassEntry & { classTeacher?: { name: string }; _count: { students: number; subjectAssignments: number } };
+
+  const openEditModal = (cls: ClassEntry) => {
     setEditingId(cls.id);
     setName(cls.name);
     setClassTeacherId(cls.classTeacherId || '');
@@ -149,7 +157,7 @@ export default function ClassesPage() {
             <Button onClick={openAddModal} variant="outline">Initialize First Class</Button>
           </div>
         ) : (
-          classes.map((cls: any) => (
+          classes.map((cls: ClassItem) => (
             <div key={cls.id} className="premium-card p-6 flex flex-col group hover:border-emerald-500/30 transition-all duration-300">
               <div className="flex justify-between items-start mb-6">
                 <div>
@@ -219,7 +227,7 @@ export default function ClassesPage() {
               className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-600 outline-none transition-all font-bold text-sm appearance-none"
             >
               <option value="">-- No Leadership Assigned --</option>
-              {teachers.map((t: any) => (
+              {teachers.map((t: Teacher) => (
                 <option key={t.id} value={t.id}>{t.name} ({t.email})</option>
               ))}
             </select>

@@ -1,4 +1,6 @@
 // API: Marks entry and retrieval
+import type { AssessmentAudit, Student } from '@prisma/client';
+import type { MarksEntry } from '@/types';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // Get existing assessments
     const assessments = await prisma.assessment.findMany({
-      where: { subjectId, termId, studentId: { in: students.map((s: any) => s.id) } },
+      where: { subjectId, termId, studentId: { in: students.map((s: Student) => s.id) } },
       include: {
         audits: {
           include: { modifiedBy: { select: { name: true, role: true } } },
@@ -33,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     const assessmentMap = new Map(assessments.map((a) => [a.studentId, a]));
 
-    const marks = students.map((student: any) => {
+    const marks = students.map((student: Student) => {
       const assessment = assessmentMap.get(student.id);
       return {
         studentId: student.id,
@@ -79,7 +81,9 @@ export async function POST(request: NextRequest) {
     
     // We want to detect changes out of the incoming payload, thus we cannot just blindly upsert.
     // Fetch all existing assessments for these students in this term/subject to diff against.
-    const studentIds = marks.map((m: any) => m.studentId);
+    type MarkPayload = MarksEntry & { id?: string; status?: string; audits?: AssessmentAudit[] };
+
+    const studentIds = (marks as MarkPayload[]).map((m) => m.studentId);
     const existingAssessments = await prisma.assessment.findMany({
       where: {
         subjectId, termId, studentId: { in: studentIds }
@@ -88,9 +92,9 @@ export async function POST(request: NextRequest) {
     
     const existingMap = new Map(existingAssessments.map(a => [a.studentId, a]));
 
-    for (const mark of marks) {
+    for (const mark of marks as MarkPayload[]) {
       const existing = existingMap.get(mark.studentId);
-      
+
       const newTest1 = mark.test1 ?? 0;
       const newAssignment1 = mark.assignment1 ?? 0;
       const newTest2 = mark.test2 ?? 0;
@@ -120,7 +124,13 @@ export async function POST(request: NextRequest) {
         results.push(createdObj);
       } else {
         // Diffing update
-        let auditCreates: any[] = [];
+        const auditCreates: Array<{
+          field: string;
+          oldValue?: number;
+          newValue?: number;
+          modifiedById: string;
+          reason: string;
+        }> = [];
         
         if (existing.test1 !== newTest1) auditCreates.push({ field: 'test1', oldValue: existing.test1, newValue: newTest1, modifiedById: userId, reason: 'Teacher updated score' });
         if (existing.assignment1 !== newAssignment1) auditCreates.push({ field: 'assignment1', oldValue: existing.assignment1, newValue: newAssignment1, modifiedById: userId, reason: 'Teacher updated score' });

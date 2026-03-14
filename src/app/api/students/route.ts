@@ -15,8 +15,9 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
 
     const session = await getServerSession(authOptions);
-    const role = (session?.user as any)?.role;
-    const email = (session?.user as any)?.email;
+    type SessionUser = { role?: string; email?: string };
+    const role = (session?.user as SessionUser)?.role;
+    const email = (session?.user as SessionUser)?.email;
 
     const allowedClassIds = await getAllowedClassIds();
 

@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
@@ -7,7 +8,8 @@ import bcrypt from 'bcryptjs';
 // Admin guard
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'ADMIN') return false;
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (!session || role !== 'ADMIN') return false;
   return true;
 }
 
@@ -17,9 +19,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    type StaffAssignmentPayload = { classId: string; subjectId: string };
+
     const { id } = await params;
     const body = await request.json();
-    const { name, email, newPassword, assignments } = body;
+    const { name, email, newPassword, assignments } = body as { name: string; email: string; newPassword?: string; assignments?: StaffAssignmentPayload[] };
 
     if (!name || !email) {
       return NextResponse.json({ error: 'Name and email are required' }, { status: 400 });
@@ -34,7 +38,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Build update data
-    const updateData: any = { name, email };
+    const updateData: Prisma.UserUpdateInput = { name, email };
     if (newPassword && newPassword.trim().length >= 6) {
       updateData.password = await bcrypt.hash(newPassword.trim(), 10);
     }
@@ -48,7 +52,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       await prisma.teacherAssignment.deleteMany({ where: { userId: id } });
       if (assignments.length > 0) {
         await prisma.teacherAssignment.createMany({
-          data: assignments.map((a: any) => ({
+          data: assignments.map((a: StaffAssignmentPayload) => ({
             userId: id,
             classId: a.classId,
             subjectId: a.subjectId,
@@ -112,10 +116,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await prisma.user.delete({ where: { id } });
 
     return NextResponse.json({ success: true, message: `Teacher ${userToDelete.name} removed successfully` });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to delete teacher:', error);
     // Explicitly handle foreign key errors if they still occur
-    if (error.code === 'P2003') {
+    const err = error as { code?: string };
+    if (err?.code === 'P2003') {
       return NextResponse.json({ 
         error: 'Cannot delete teacher because they have associated records (marks, etc.) that cannot be removed.' 
       }, { status: 400 });

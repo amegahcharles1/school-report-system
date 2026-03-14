@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
@@ -7,7 +8,8 @@ import bcrypt from 'bcryptjs';
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || (session.user as any).role !== 'ADMIN') {
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -34,12 +36,15 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || (session.user as any).role !== 'ADMIN') {
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    type StaffAssignmentPayload = { classId: string; subjectId: string };
+
     const data = await request.json();
-    const { name, email, assignments } = data; // assignments: [{classId, subjectId}]
+    const { name, email, assignments } = data as { name: string; email: string; assignments?: StaffAssignmentPayload[] }; // assignments: [{classId, subjectId}]
 
     if (!name || !email) {
       return NextResponse.json({ error: 'Name and email are required' }, { status: 400 });
@@ -60,7 +65,7 @@ export async function POST(request: Request) {
         password: hashedPassword,
         role: 'TEACHER',
         teacherAssignments: {
-          create: assignments.map((a: any) => ({
+          create: (assignments || []).map((a: StaffAssignmentPayload) => ({
             classId: a.classId,
             subjectId: a.subjectId
           }))
