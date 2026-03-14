@@ -1,77 +1,70 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { FileText, Printer, Download, Search, Layout, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, Printer, Download, Search, Layout, ChevronLeft, ChevronRight, Loader2, BookOpen, GraduationCap, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
+import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 
 export default function ReportCardsPage() {
   const { data: session } = useSession();
-  const userId = (session?.user as any)?.id;
-
-  const [classes, setClasses] = useState<any[]>([]);
-  const [terms, setTerms] = useState<any[]>([]);
-  const [students, setStudents] = useState<any[]>([]);
-  const [reportData, setReportData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-
+  
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState('');
 
-  // 1. Initial configuration fetch
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/classes').then(res => res.json()),
-      fetch('/api/terms').then(res => res.json())
-    ]).then(([clsData, termData]) => {
-      setClasses(clsData);
-      const activeTerms = termData.filter((t: any) => t.isCurrent);
-      setTerms(activeTerms.length > 0 ? activeTerms : termData);
-      
-      if (clsData.length > 0) setSelectedClass(clsData[0].id);
-      if (activeTerms.length > 0) setSelectedTerm(activeTerms[0].id);
-      else if (termData.length > 0) setSelectedTerm(termData[0].id);
-    });
-  }, []);
-
-  // 2. Fetch students when class changes
-  useEffect(() => {
-    if (selectedClass) {
-      fetch(`/api/students?classId=${selectedClass}`)
-        .then(res => res.json())
-        .then(data => {
-          setStudents(data);
-          if (data.length > 0) setSelectedStudent(data[0].id);
-          else setSelectedStudent('');
-        });
+  // 1. Fetch Classes
+  const { data: classes = [] } = useQuery({
+    queryKey: ['classes'],
+    queryFn: async () => {
+      const res = await fetch('/api/classes');
+      const data = await res.json();
+      if (data.length > 0 && !selectedClass) setSelectedClass(data[0].id);
+      return data;
     }
-  }, [selectedClass]);
+  });
 
-  // 3. Fetch report data
-  useEffect(() => {
-    if (selectedStudent && selectedTerm) {
-      fetchReport();
-    } else {
-      setReportData(null);
+  // 2. Fetch Terms
+  const { data: terms = [] } = useQuery({
+    queryKey: ['terms'],
+    queryFn: async () => {
+      const res = await fetch('/api/terms');
+      const data = await res.json();
+      const activeTerm = data.find((t: any) => t.isCurrent);
+      if (activeTerm && !selectedTerm) setSelectedTerm(activeTerm.id);
+      else if (data.length > 0 && !selectedTerm) setSelectedTerm(data[0].id);
+      return data;
     }
-  }, [selectedStudent, selectedTerm]);
+  });
 
-  const fetchReport = async () => {
-    setLoading(true);
-    try {
+  // 3. Fetch Students (Dependent on Class)
+  const { data: students = [], isLoading: isLoadingStudents } = useQuery({
+    queryKey: ['students', selectedClass],
+    queryFn: async () => {
+      if (!selectedClass) return [];
+      const res = await fetch(`/api/students?classId=${selectedClass}`);
+      const data = await res.json();
+      if (data.length > 0) setSelectedStudent(data[0].id);
+      else setSelectedStudent('');
+      return data;
+    },
+    enabled: !!selectedClass
+  });
+
+  // 4. Fetch Report Data (Dependent on Student and Term)
+  const { data: reportData, isLoading: isLoadingReport, isFetching: isFetchingReport } = useQuery({
+    queryKey: ['report-card', selectedStudent, selectedTerm],
+    queryFn: async () => {
+      if (!selectedStudent || !selectedTerm) return null;
       const res = await fetch(`/api/report-card/${selectedStudent}?termId=${selectedTerm}`);
-      if (res.ok) {
-        setReportData(await res.json());
-      } else {
-        toast.error('Failed to generate report card');
-      }
-    } catch (error) {
-      toast.error('Network error');
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (!res.ok) throw new Error('Failed to generate report');
+      return res.json();
+    },
+    enabled: !!selectedStudent && !!selectedTerm,
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  });
 
   const handlePrint = () => {
     window.print();
@@ -84,63 +77,96 @@ export default function ReportCardsPage() {
     }, 500);
   };
 
+  const loading = isLoadingReport || isFetchingReport;
+
   return (
-    <div className="space-y-6 animate-fade-in relative min-h-screen">
+    <div className="space-y-8 animate-fade-in relative min-h-screen pb-20">
       {/* Selection Toolbar - Hidden when printing */}
-      <div className="no-print space-y-4">
-        <div className="flex justify-between items-center">
+      <div className="no-print space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <FileText className="w-6 h-6 text-indigo-600" /> Administrative Report Center
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+              <FileText className="w-8 h-8 text-indigo-600" /> Assessment Vault
             </h1>
-            <p className="text-gray-500 mt-1">Generate and print professional student progress reports</p>
+            <p className="text-slate-500 dark:text-slate-400 font-medium">Generate and curate professional institutional progress reports</p>
           </div>
           {reportData && (
             <div className="flex gap-3">
-              <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg shadow-sm transition-colors font-medium">
-                <Printer className="w-4 h-4" /> Print Report
-              </button>
-              <button 
+              <Button onClick={handlePrint} variant="outline" icon={<Printer className="w-4 h-4" />}>
+                Print Document
+              </Button>
+              <Button 
                 onClick={handleDownloadPDF} 
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition-colors font-medium disabled:opacity-50"
+                variant="premium" 
+                className="bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/10"
+                icon={<Download className="w-4 h-4" />}
+                isLoading={loading}
               >
-                <Download className="w-4 h-4" /> Save as PDF
-              </button>
+                Export PDF
+              </Button>
             </div>
           )}
         </div>
 
-        <div className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Class</label>
-            <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="w-full px-4 py-2 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-indigo-500">
-              {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        <div className="premium-card p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
+              <BookOpen className="w-3 h-3" /> Class Segment
+            </label>
+            <select 
+              value={selectedClass} 
+              onChange={e => setSelectedClass(e.target.value)} 
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all font-bold text-sm appearance-none"
+            >
+              {classes.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Term</label>
-            <select value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)} className="w-full px-4 py-2 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-indigo-500">
-              {terms.map(t => <option key={t.id} value={t.id}>{t.name} ({t.academicYear?.name})</option>)}
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
+              <Calendar className="w-3 h-3" /> Academic Phase
+            </label>
+            <select 
+              value={selectedTerm} 
+              onChange={e => setSelectedTerm(e.target.value)} 
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all font-bold text-sm appearance-none"
+            >
+              {terms.map((t: any) => <option key={t.id} value={t.id}>{t.name} ({t.academicYear?.name})</option>)}
             </select>
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Student</label>
-            <select value={selectedStudent} onChange={e => setSelectedStudent(e.target.value)} className="w-full px-4 py-2 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-indigo-500">
-              {students.map(s => <option key={s.id} value={s.id}>{s.lastName}, {s.firstName}</option>)}
-              {students.length === 0 && <option value="">No students found in this class</option>}
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
+              <GraduationCap className="w-3 h-3" /> Candidate Selection
+            </label>
+            <select 
+              value={selectedStudent} 
+              onChange={e => setSelectedStudent(e.target.value)} 
+              disabled={isLoadingStudents}
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all font-bold text-sm appearance-none disabled:opacity-50"
+            >
+              {isLoadingStudents ? (
+                <option>Loading roster...</option>
+              ) : students.length === 0 ? (
+                <option value="">No students in segment</option>
+              ) : (
+                students.map((s: any) => <option key={s.id} value={s.id}>{s.lastName}, {s.firstName}</option>)
+              )}
             </select>
           </div>
         </div>
       </div>
 
       {loading ? (
-        <div className="no-print p-12 text-center text-gray-500 animate-pulse">
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          Generating secure report layout...
+        <div className="no-print mt-20 p-24 text-center flex flex-col items-center justify-center">
+          <div className="relative">
+            <div className="h-24 w-24 border-4 border-indigo-600/10 border-t-indigo-600 rounded-full animate-spin"></div>
+            <FileText className="absolute inset-0 m-auto h-8 w-8 text-indigo-600 animate-pulse" />
+          </div>
+          <p className="mt-8 text-slate-500 font-black uppercase tracking-[0.3em] text-xs">Compiling Secure Assessment...</p>
         </div>
       ) : reportData ? (
-        <div id="report-card" className="bg-white text-black p-10 md:p-14 shadow-2xl rounded-sm max-w-[210mm] mx-auto min-h-[297mm] print:shadow-none print:m-0 print:p-0 print:max-w-full font-serif relative">
+        <div id="report-card" className="bg-white text-black p-10 md:p-14 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.1)] rounded-sm max-w-[210mm] mx-auto min-h-[297mm] print:shadow-none print:m-0 print:p-0 print:max-w-full font-serif relative">
           
           {/* Header */}
           <div className="text-center border-b-[6px] border-indigo-900 pb-8 mb-10">
@@ -166,7 +192,7 @@ export default function ReportCardsPage() {
           <div className="grid grid-cols-2 gap-x-12 gap-y-6 mb-10 py-8 px-10 bg-slate-50 border-x-2 border-slate-200 rounded-sm font-sans">
             <div className="flex border-b border-slate-300 pb-1">
               <span className="font-black w-36 uppercase text-[10px] text-indigo-900 flex items-center">{reportData.school.studentLabel || 'Student Name'}:</span> 
-              <span className="font-bold text-lg uppercase flex-1">{reportData.student.lastName}, {reportData.student.firstName} {reportData.student.middleName}</span>
+              <span className="font-bold text-lg uppercase flex-1 truncate">{reportData.student.lastName}, {reportData.student.firstName}</span>
             </div>
             <div className="flex border-b border-slate-300 pb-1">
               <span className="font-black w-36 uppercase text-[10px] text-indigo-900 flex items-center">Academic Year:</span> 
@@ -183,8 +209,8 @@ export default function ReportCardsPage() {
           </div>
 
           {/* Marks Table */}
-          <div className="mb-10 font-sans">
-            <table className="w-full border-collapse">
+          <div className="mb-10 font-sans overflow-x-auto">
+            <table className="w-full border-collapse min-w-full">
               <thead>
                 <tr className="bg-slate-800 text-white">
                   <th className="border-2 border-slate-800 px-4 py-4 text-left uppercase text-[11px] font-black w-1/3">{reportData.school.subjectLabel || 'Subject of Learning'}</th>
@@ -253,7 +279,7 @@ export default function ReportCardsPage() {
                   </div>
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-xs font-bold text-slate-500 uppercase">{reportData.school.lowestScoreLabel || 'Lowest Score'}:</span>
-                    <span className="font-black text-sm text-red-600">{reportData.summary.lowestAvg}%</span>
+                    <span className="font-black text-sm text-rose-600">{reportData.summary.lowestAvg}%</span>
                   </div>
                 </div>
                 <p className="text-[9px] text-slate-400 mt-6 italic">Statistics generated based on peer comparison in the same academic level.</p>
@@ -297,10 +323,19 @@ export default function ReportCardsPage() {
           </div>
         </div>
       ) : (
-        <div className="no-print p-20 text-center text-slate-400 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border-2 border-dashed border-slate-100 dark:border-slate-800">
-          <Layout className="w-16 h-16 mx-auto mb-4 opacity-20" />
-          <p className="text-lg font-bold">Preview Environment</p>
-          <p className="text-sm mt-1">Select a class and student above to generate a professional assessment report.</p>
+        <div className="no-print mt-12 p-24 text-center flex flex-col items-center justify-center bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-100 dark:border-slate-800 animate-fade-in shadow-sm">
+          <div className="h-20 w-20 bg-slate-50 dark:bg-slate-800 rounded-3xl flex items-center justify-center mb-6">
+            <Layout className="w-10 h-10 text-slate-200" />
+          </div>
+          <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">Preview Environment Active</h3>
+          <p className="max-w-xs text-slate-400 text-sm font-medium mb-8">Synchronize with your academic segments to generate a professional candidate report.</p>
+          <div className="flex gap-4">
+            <Badge variant="outline">Select Class</Badge>
+            <ChevronRight className="w-4 h-4 text-slate-300 self-center" />
+            <Badge variant="outline">Select Term</Badge>
+            <ChevronRight className="w-4 h-4 text-slate-300 self-center" />
+            <Badge variant="outline">Select Student</Badge>
+          </div>
         </div>
       )}
     </div>

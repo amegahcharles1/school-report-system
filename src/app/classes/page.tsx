@@ -1,44 +1,82 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { School, Plus, Trash2, Edit, User as UserIcon, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { School, Plus, Trash2, Edit, User as UserIcon, ShieldCheck, Loader2, Users, BookOpen } from 'lucide-react';
 import Modal from '@/components/Modal';
 import toast from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Input } from '@/components/ui/Input';
 
 export default function ClassesPage() {
   const { data: session } = useSession();
   const isAdmin = (session?.user as any)?.role === 'ADMIN';
+  const queryClient = useQueryClient();
 
-  const [classes, setClasses] = useState<any[]>([]);
-  const [teachers, setTeachers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [classTeacherId, setClassTeacherId] = useState('');
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [clsRes, teacherRes] = await Promise.all([
-        fetch('/api/classes'),
-        fetch('/api/staff')
-      ]);
-      
-      if (clsRes.ok) setClasses(await clsRes.json());
-      if (teacherRes.ok) setTeachers(await teacherRes.json());
-    } catch (error) {
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Queries
+  const { data: classes = [], isLoading: isLoadingClasses } = useQuery({
+    queryKey: ['classes'],
+    queryFn: async () => {
+      const res = await fetch('/api/classes');
+      if (!res.ok) throw new Error('Failed to fetch classes');
+      return res.json();
+    },
+    enabled: isAdmin
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const { data: teachers = [], isLoading: isLoadingTeachers } = useQuery({
+    queryKey: ['staff'],
+    queryFn: async () => {
+      const res = await fetch('/api/staff');
+      if (!res.ok) throw new Error('Failed to fetch staff');
+      return res.json();
+    },
+    enabled: isAdmin
+  });
+
+  // Mutations
+  const saveMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const url = editingId ? `/api/classes/${editingId}` : '/api/classes';
+      const method = editingId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Operation failed');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['classes'] });
+      toast.success(`Class ${editingId ? 'updated' : 'added'}`);
+      setIsModalOpen(false);
+    },
+    onError: (err: Error) => toast.error(err.message)
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/classes/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['classes'] });
+      toast.success('Class deleted');
+    },
+    onError: () => toast.error('Delete failed')
+  });
 
   const openAddModal = () => {
     setEditingId(null);
@@ -54,114 +92,103 @@ export default function ClassesPage() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name) return toast.error('Class name required');
-
-    const url = editingId ? `/api/classes/${editingId}` : '/api/classes';
-    const method = editingId ? 'PUT' : 'POST';
-
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name, 
-          classTeacherId: classTeacherId || null 
-        }),
-      });
-
-      if (res.ok) {
-        toast.success(`Class ${editingId ? 'updated' : 'added'}`);
-        setIsModalOpen(false);
-        fetchData();
-      } else {
-        const err = await res.json();
-        toast.error(err.error || 'Operation failed');
-      }
-    } catch {
-      toast.error('Network error');
-    }
+    saveMutation.mutate({ name, classTeacherId: classTeacherId || null });
   };
 
-  const handleDelete = async (id: string, name: string) => {
+  const handleDelete = (id: string, name: string) => {
     if (confirm(`Delete ${name}? This removes all students and marks inside it.`)) {
-      try {
-        const res = await fetch(`/api/classes/${id}`, { method: 'DELETE' });
-        if (res.ok) {
-          toast.success('Class deleted');
-          fetchData();
-        } else {
-          toast.error('Delete failed');
-        }
-      } catch {
-        toast.error('Network error');
-      }
+      deleteMutation.mutate(id);
     }
   };
 
   if (!isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center h-[70vh]">
-        <ShieldCheck className="w-16 h-16 text-gray-300 mb-4" />
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Admin Access Only</h2>
-        <p className="text-gray-500 mt-2">Class management is restricted to administrators.</p>
+      <div className="flex flex-col items-center justify-center p-12 text-center h-[70vh] bg-slate-50/50 dark:bg-slate-900/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 m-8 animate-fade-in">
+        <div className="h-20 w-20 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center shadow-sm mb-6">
+          <ShieldCheck className="w-10 h-10 text-rose-500" />
+        </div>
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Access Restricted</h2>
+        <p className="text-slate-500 max-w-sm mt-3 font-medium">Class architecture management is reserved for administrative personnel only.</p>
+        <Button variant="outline" className="mt-8" onClick={() => window.history.back()}>Go Back</Button>
       </div>
     );
   }
 
+  const loading = isLoadingClasses || isLoadingTeachers;
+
   return (
-    <div className="space-y-6 animate-fade-in max-w-5xl mx-auto pb-12">
-      <div className="flex justify-between items-center">
+    <div className="space-y-8 animate-fade-in pb-12">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <School className="w-6 h-6 text-emerald-600" /> Academic Classes
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+            <School className="w-8 h-8 text-emerald-600" /> Departments
           </h1>
-          <p className="text-gray-500 mt-1">Manage grade levels and assign responsible class teachers</p>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">Manage grade levels and departmental leadership</p>
         </div>
-        <button onClick={openAddModal} className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg transition-all font-medium">
-          <Plus className="w-4 h-4" /> Create New Class
-        </button>
+        <Button 
+          onClick={openAddModal} 
+          variant="premium"
+          icon={<Plus className="w-4 h-4" />}
+          className="shadow-emerald-500/10"
+        >
+          Create New Class
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
-          [1,2,3].map(i => <div key={i} className="h-44 bg-gray-100 dark:bg-gray-800 rounded-2xl animate-pulse" />)
+          [1,2,3].map(i => <div key={i} className="h-64 premium-card animate-pulse bg-slate-50 dark:bg-slate-800/50" />)
         ) : classes.length === 0 ? (
-          <div className="col-span-full p-20 text-center text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border-2 border-dashed border-gray-100 dark:border-gray-800">
-            <School className="w-12 h-12 mx-auto mb-3 opacity-20" />
-            <p className="font-bold">No academic classes found</p>
-            <p className="text-sm">Click "Create New Class" to get started.</p>
+          <div className="col-span-full p-24 text-center flex flex-col items-center justify-center bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-100 dark:border-slate-800">
+            <School className="w-16 h-16 text-slate-200 mb-6" />
+            <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">No educational departments</h3>
+            <p className="text-slate-400 text-sm mb-8">Establish your first class to begin student enrollment.</p>
+            <Button onClick={openAddModal} variant="outline">Initialize First Class</Button>
           </div>
         ) : (
-          classes.map((cls) => (
-            <div key={cls.id} className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all flex flex-col group">
+          classes.map((cls: any) => (
+            <div key={cls.id} className="premium-card p-6 flex flex-col group hover:border-emerald-500/30 transition-all duration-300">
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-2xl font-black text-gray-900 dark:text-white group-hover:text-emerald-600 transition-colors uppercase">{cls.name}</h3>
-                  <div className="mt-2 flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    <UserIcon className="w-3 h-3" /> 
-                    {cls.classTeacher?.name ? (
-                      <span className="text-emerald-600 dark:text-emerald-400">Tr. {cls.classTeacher.name}</span>
-                    ) : (
-                      <span className="italic text-amber-500 font-medium">Unassigned</span>
-                    )}
+                  <h3 className="text-3xl font-black text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors uppercase tracking-tighter leading-none">{cls.name}</h3>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Badge variant={cls.classTeacher ? 'success' : 'outline'} className="text-[9px] py-0 px-2 h-5">
+                      {cls.classTeacher ? `Lead: ${cls.classTeacher.name}` : 'No Leadership'}
+                    </Badge>
                   </div>
                 </div>
-                <div className="flex gap-1">
-                  <button onClick={() => openEditModal(cls)} className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-all"><Edit className="w-4 h-4" /></button>
-                  <button onClick={() => handleDelete(cls.id, cls.name)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button onClick={() => openEditModal(cls)} variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-emerald-600">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={() => handleDelete(cls.id, cls.name)} variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-600">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
 
-              <div className="mt-auto grid grid-cols-2 gap-4 pt-4 border-t border-gray-50 dark:border-gray-800">
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg text-center">
-                  <p className="text-xs font-bold text-gray-400 uppercase">Students</p>
-                  <p className="text-lg font-black text-slate-800 dark:text-slate-200">{cls._count.students}</p>
+              <div className="mt-auto flex items-center justify-between pt-6 border-t border-slate-100 dark:border-slate-800 gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                    <Users className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase leading-none">Roster</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white">{cls._count.students} Students</p>
+                  </div>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg text-center">
-                  <p className="text-xs font-bold text-gray-400 uppercase">Subjects</p>
-                  <p className="text-lg font-black text-slate-800 dark:text-slate-200">{cls._count.subjectAssignments}</p>
+
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                    <BookOpen className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase leading-none">Courses</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white">{cls._count.subjectAssignments} Subjects</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -169,37 +196,46 @@ export default function ClassesPage() {
         )}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Modify Class Context" : "Establish New Class"} size="sm">
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Detailed Class Name</label>
-            <input 
-              type="text" value={name} onChange={e => setName(e.target.value)} required 
-              placeholder="e.g. JHS 1 - EXCELLENCE" 
-              className="w-full px-4 py-2 border rounded-xl bg-gray-50 dark:bg-gray-800 dark:border-gray-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-600 outline-none transition-all font-medium" 
-            />
-          </div>
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        title={editingId ? "Modify Institutional Context" : "Establish Educational Entity"} 
+        size="md"
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Input 
+            label="Class Nomenclature"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            required 
+            placeholder="e.g. JHS 1 - EXCELLENCE" 
+          />
 
-          <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Form / Class Teacher Assignment</label>
+          <div className="space-y-2">
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest pl-1">Principal Instructor</label>
             <select 
               value={classTeacherId} 
               onChange={e => setClassTeacherId(e.target.value)} 
-              className="w-full px-4 py-2 border rounded-xl bg-gray-50 dark:bg-gray-800 dark:border-gray-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-600 outline-none transition-all font-medium"
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-600 outline-none transition-all font-bold text-sm appearance-none"
             >
-              <option value="">-- No Teacher Assigned --</option>
-              {teachers.map(t => (
+              <option value="">-- No Leadership Assigned --</option>
+              {teachers.map((t: any) => (
                 <option key={t.id} value={t.id}>{t.name} ({t.email})</option>
               ))}
             </select>
-            <p className="text-[10px] text-gray-400 mt-2 italic font-medium">Selected teacher will appear on report cards for this specific class.</p>
+            <p className="text-[10px] text-slate-400 mt-2 italic font-medium">The assigned leadership will be authorized to validate report cards for this department.</p>
           </div>
 
-          <div className="pt-6 flex justify-end gap-3 border-t dark:border-gray-800">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-2 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors uppercase">Dismiss</button>
-            <button type="submit" className="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg shadow-emerald-600/20 text-sm font-black uppercase tracking-wider transition-all transform active:scale-95">
-              Confirm Configuration
-            </button>
+          <div className="pt-6 flex gap-3 border-t dark:border-slate-800">
+            <Button type="button" onClick={() => setIsModalOpen(false)} variant="outline" className="flex-1">Discard</Button>
+            <Button 
+              type="submit" 
+              variant="premium" 
+              className="flex-1 shadow-emerald-500/10"
+              isLoading={saveMutation.isPending}
+            >
+              Confirm Entity
+            </Button>
           </div>
         </form>
       </Modal>

@@ -1,7 +1,7 @@
 // API: Results with calculations and rankings
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { calculateFinalTotal, getGradeAndRemark, calculatePositions, getPositionSuffix } from '@/lib/calculations';
+import { calculateCAContribution, calculateExamContribution, getGradeAndRemark, calculatePositions, getPositionSuffix } from '@/lib/calculations';
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,12 +25,16 @@ export async function GET(request: NextRequest) {
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     });
 
+    const settings = await prisma.schoolSettings.findUnique({ where: { id: 'default' } });
+    const caWeight = settings?.caWeight ?? 40;
+    const examWeight = settings?.examWeight ?? 60;
+
     // Calculate results for each student
     const studentResults = students.map((student) => {
       const subjectResults = student.assessments.map((a) => {
         const caSubtotal = a.test1 + a.assignment1 + a.test2 + a.assignment2;
-        const caContribution = Math.round(caSubtotal * 0.4 * 100) / 100;
-        const examContribution = Math.round(a.examScore * 0.6 * 100) / 100;
+        const caContribution = calculateCAContribution(caSubtotal, caWeight);
+        const examContribution = calculateExamContribution(a.examScore, examWeight);
         const finalTotal = Math.round((caContribution + examContribution) * 100) / 100;
         const { grade, remark } = getGradeAndRemark(finalTotal, gradeConfigs);
 
