@@ -126,7 +126,7 @@ export default function MarksEntryPage() {
       const res = await fetch('/api/marks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subjectId: selectedSubject, termId: selectedTerm, marks: localMarks }),
+        body: JSON.stringify({ classId: selectedClass, subjectId: selectedSubject, termId: selectedTerm, marks: localMarks }),
       });
       if (!res.ok) throw new Error('Failed to save');
       return res.json();
@@ -139,7 +139,7 @@ export default function MarksEntryPage() {
   });
 
   const handleMarkChange = (studentId: string, field: string, value: string) => {
-    const numValue = value === '' ? 0 : parseFloat(value);
+    const numValue = value === '' ? null : Number.isNaN(parseFloat(value)) ? null : parseFloat(value);
     setLocalMarks(prev => prev.map(m => m.studentId === studentId ? { ...m, [field]: numValue } : m));
   };
 
@@ -147,12 +147,14 @@ export default function MarksEntryPage() {
     setExpandedStudents(prev => prev.includes(studentId) ? prev.filter(id => id !== studentId) : [...prev, studentId]);
   };
 
-  const calculateSubtotal = (m: MarksEntry) => (m.test1 || 0) + (m.assignment1 || 0) + (m.test2 || 0) + (m.assignment2 || 0);
+  const calculateSubtotal = (m: MarksEntry) =>
+    (m.test1 ?? 0) + (m.assignment1 ?? 0) + (m.test2 ?? 0) + (m.assignment2 ?? 0);
+
   const calculateTotal = (m: MarksEntry) => {
     const caWeight = settings?.caWeight ?? 40;
     const examWeight = settings?.examWeight ?? 60;
     const ca = calculateSubtotal(m) * (caWeight / 100);
-    const exam = (m.examScore || 0) * (examWeight / 100);
+    const exam = (m.examScore ?? 0) * (examWeight / 100);
     return Math.round((ca + exam) * 100) / 100;
   };
 
@@ -369,21 +371,21 @@ export default function MarksEntryPage() {
                             </div>
                           </td>
                           <td className="p-0.5" style={{ minWidth: settings?.columnWidth || 100 }}>
-                            <input type="number" min="0" max="25" step="0.1" value={m.test1 || ''} onChange={e => handleMarkChange(m.studentId, 'test1', e.target.value)} className="w-full text-center py-3 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-950 outline-none transition-all font-medium border-b-2 border-transparent focus:border-blue-500" />
+                            <input type="number" min="0" max="25" step="0.1" value={m.test1 ?? ''} onChange={e => handleMarkChange(m.studentId, 'test1', e.target.value)} className="w-full text-center py-3 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-950 outline-none transition-all font-medium border-b-2 border-transparent focus:border-blue-500" />
                           </td>
                           <td className="p-0.5" style={{ minWidth: settings?.columnWidth || 100 }}>
-                            <input type="number" min="0" max="25" step="0.1" value={m.assignment1 || ''} onChange={e => handleMarkChange(m.studentId, 'assignment1', e.target.value)} className="w-full text-center py-3 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-950 outline-none transition-all font-medium border-b-2 border-transparent focus:border-blue-500" />
+                            <input type="number" min="0" max="25" step="0.1" value={m.assignment1 ?? ''} onChange={e => handleMarkChange(m.studentId, 'assignment1', e.target.value)} className="w-full text-center py-3 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-950 outline-none transition-all font-medium border-b-2 border-transparent focus:border-blue-500" />
                           </td>
                           <td className="p-0.5" style={{ minWidth: settings?.columnWidth || 100 }}>
-                            <input type="number" min="0" max="25" step="0.1" value={m.test2 || ''} onChange={e => handleMarkChange(m.studentId, 'test2', e.target.value)} className="w-full text-center py-3 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-950 outline-none transition-all font-medium border-b-2 border-transparent focus:border-blue-500" />
+                            <input type="number" min="0" max="25" step="0.1" value={m.test2 ?? ''} onChange={e => handleMarkChange(m.studentId, 'test2', e.target.value)} className="w-full text-center py-3 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-950 outline-none transition-all font-medium border-b-2 border-transparent focus:border-blue-500" />
                           </td>
                           <td className="p-0.5" style={{ minWidth: settings?.columnWidth || 100 }}>
-                            <input type="number" min="0" max="25" step="0.1" value={m.assignment2 || ''} onChange={e => handleMarkChange(m.studentId, 'assignment2', e.target.value)} className="w-full text-center py-3 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-950 outline-none transition-all font-medium border-b-2 border-transparent focus:border-blue-500" />
+                            <input type="number" min="0" max="25" step="0.1" value={m.assignment2 ?? ''} onChange={e => handleMarkChange(m.studentId, 'assignment2', e.target.value)} className="w-full text-center py-3 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-950 outline-none transition-all font-medium border-b-2 border-transparent focus:border-blue-500" />
                           </td>
                           <td className="text-center font-bold text-slate-400 bg-slate-50/30 dark:bg-slate-900/10" style={{ minWidth: 100 }}>{subtotal}</td>
                           <td className="text-center font-black text-blue-600 dark:text-blue-400" style={{ minWidth: 80 }}>{caContribution}</td>
                           <td className="p-0.5 border-l border-slate-100 dark:border-slate-800" style={{ minWidth: settings?.columnWidth || 100 }}>
-                            <input type="number" min="0" max="100" step="0.1" value={m.examScore || ''} onChange={e => handleMarkChange(m.studentId, 'examScore', e.target.value)} className="w-full text-center py-3 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-950 outline-none transition-all font-black border-b-2 border-transparent focus:border-blue-600 text-blue-700 dark:text-blue-300" />
+                            <input type="number" min="0" max="100" step="0.1" value={m.examScore ?? ''} onChange={e => handleMarkChange(m.studentId, 'examScore', e.target.value)} className="w-full text-center py-3 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-950 outline-none transition-all font-black border-b-2 border-transparent focus:border-blue-600 text-blue-700 dark:text-blue-300" />
                           </td>
                           <td className="text-center font-black text-blue-600 dark:text-blue-400" style={{ minWidth: 80 }}>{examContribution}</td>
                           <td className="text-center border-l border-slate-100 dark:border-slate-800">

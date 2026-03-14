@@ -74,7 +74,8 @@ model User {
   name               String
   email              String              @unique
   password           String // hashed password
-  role               String              @default("TEACHER") // "ADMIN" or "TEACHER"
+  role               String              @default("TEACHER") // "ADMIN" or "TEACHER" or "STUDENT"
+  mustChangePassword Boolean             @default(false)
   teacherAssignments TeacherAssignment[]
   classOversight     Class[]             @relation("ClassTeacher")
   createdMarks       Assessment[]        @relation("AssessmentCreator")
@@ -145,6 +146,7 @@ model Student {
   gender       String       @default("Male") // Male or Female
   dateOfBirth  String       @default("")
   displayOrder Int          @default(9999) // Custom sort order (lower = first)
+  pin          String?      // Optional student access PIN (hashed)
   classId      String
   class        Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
   assessments  Assessment[]
@@ -185,11 +187,11 @@ model Assessment {
   studentId   String
   subjectId   String
   termId      String
-  test1       Float        @default(0) // Test 1 score
-  assignment1 Float        @default(0) // Assignment/Project 1
-  test2       Float        @default(0) // Test 2 score
-  assignment2 Float        @default(0) // Assignment/Project 2
-  examScore   Float        @default(0) // Exam score out of 100
+  test1       Float?       // Test 1 score
+  assignment1 Float?       // Assignment/Project 1
+  test2       Float?       // Test 2 score
+  assignment2 Float?       // Assignment/Project 2
+  examScore   Float?       // Exam score out of 100
   status      String       @default("IN_PROGRESS") // NOT_STARTED, IN_PROGRESS, COMPLETED
   createdById String?
   updatedById String?

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { 
   Settings as SettingsIcon, Save, Percent, Award, BookOpen, 
   User as UserIcon, Building2, Layout, Plus, Trash2, ShieldCheck, 
-  ChevronRight, Calculator, GraduationCap
+  ChevronRight, Calculator, GraduationCap, Calendar
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
@@ -56,6 +56,8 @@ export default function SettingsPage() {
   });
 
   const [grades, setGrades] = useState<any[]>([]);
+  const [academicYears, setAcademicYears] = useState<any[]>([]);
+  const [newYearName, setNewYearName] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -63,9 +65,10 @@ export default function SettingsPage() {
 
   const fetchData = async () => {
     try {
-      const [settingsRes, gradesRes] = await Promise.all([
+      const [settingsRes, gradesRes, yearsRes] = await Promise.all([
         fetch('/api/settings'),
-        fetch('/api/grades')
+        fetch('/api/grades'),
+        fetch('/api/academic-years')
       ]);
       
       const settingsData = await settingsRes.json();
@@ -76,6 +79,11 @@ export default function SettingsPage() {
       const gradesData = await gradesRes.json();
       if (gradesData && !gradesData.error) {
         setGrades(gradesData);
+      }
+
+      const yearsData = await yearsRes.json();
+      if (yearsData && !yearsData.error) {
+        setAcademicYears(yearsData);
       }
     } catch (error) {
       toast.error('Failed to load settings');
@@ -149,6 +157,75 @@ export default function SettingsPage() {
     }
   };
 
+  const createAcademicYear = async () => {
+    if (!newYearName.trim()) {
+      toast.error('Academic year name is required');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch('/api/academic-years', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newYearName.trim(), isCurrent: false }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAcademicYears((prev) => [data, ...prev]);
+        setNewYearName('');
+        toast.success('Academic year created');
+      } else {
+        toast.error(data.error || 'Failed to create academic year');
+      }
+    } catch (err) {
+      toast.error('Network error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setCurrentYear = async (id: string) => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/academic-years', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, isCurrent: true }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAcademicYears((prev) => prev.map((y) => ({ ...y, isCurrent: y.id === id })));
+        toast.success('Current academic year updated');
+      } else {
+        toast.error(data.error || 'Failed to update academic year');
+      }
+    } catch (err) {
+      toast.error('Network error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteAcademicYear = async (id: string) => {
+    if (!confirm('Delete this academic year? This cannot be undone.')) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/academic-years?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        setAcademicYears((prev) => prev.filter((y) => y.id !== id));
+        toast.success('Academic year removed');
+      } else {
+        toast.error(data.error || 'Failed to delete academic year');
+      }
+    } catch (err) {
+      toast.error('Network error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center h-[70vh]">
@@ -183,6 +260,7 @@ export default function SettingsPage() {
       <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl w-fit">
         {[
           { id: 'school', label: 'School & Reports', icon: Building2 },
+          { id: 'calendar', label: 'Academic Calendar', icon: Calendar },
           { id: 'assessment', label: 'Assessment Rules', icon: Calculator },
           { id: 'terminology', label: 'Terminology', icon: Layout },
           { id: 'grading', label: 'Grading System', icon: GraduationCap }
@@ -250,6 +328,87 @@ export default function SettingsPage() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Custom Report Bottom Message</label>
                   <textarea name="reportCardMessage" value={settings.reportCardMessage} onChange={handleSettingsChange} rows={2} className="settings-input border-slate-200 px-4 py-2" placeholder="Wishing all students a fruitful stay..." />
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* TAB 2: Academic Calendar */}
+        {activeTab === 'calendar' && (
+          <div className="p-6 md:p-8 space-y-10 animate-fade-in">
+            <section>
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-6">
+                <Calendar className="w-4 h-4" /> Academic Years & Terms
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="col-span-2 space-y-4">
+                  <p className="text-sm text-slate-600 dark:text-slate-300">Create and manage academic years. Set the current year to ensure report generation and term selection follow the correct academic period.</p>
+
+                  <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Academic Years</h4>
+                      <button
+                        type="button"
+                        onClick={createAcademicYear}
+                        disabled={!newYearName.trim() || saving}
+                        className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                      >
+                        Add Year
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        value={newYearName}
+                        onChange={(e) => setNewYearName(e.target.value)}
+                        placeholder="e.g. 2025/2026"
+                        className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                      <span className="text-xs text-slate-400">Press &quot;Add Year&quot; to create</span>
+                    </div>
+
+                    <div className="mt-6 space-y-2">
+                      {academicYears.length === 0 ? (
+                        <p className="text-xs text-slate-500">No academic years created yet.</p>
+                      ) : (
+                        academicYears.map((year: any) => (
+                          <div key={year.id} className="flex items-center justify-between gap-3 p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                            <div>
+                              <p className="font-semibold text-slate-900 dark:text-white">{year.name}</p>
+                              {year.isCurrent && <span className="text-[11px] font-black text-emerald-600">Active</span>}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {!year.isCurrent && (
+                                <button
+                                  type="button"
+                                  onClick={() => setCurrentYear(year.id)}
+                                  className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
+                                >
+                                  Set Active
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => deleteAcademicYear(year.id)}
+                                className="px-3 py-1 rounded-lg bg-rose-500 text-white text-xs font-semibold hover:bg-rose-600"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="col-span-1">
+                  <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">How it works</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                      Academic years group your terms. Only one academic year is active at a time. When you update or create a new year, make sure to set it as the active year so the rest of the system uses the correct term and reporting window.
+                    </p>
+                  </div>
                 </div>
               </div>
             </section>

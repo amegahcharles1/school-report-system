@@ -64,6 +64,7 @@ export async function POST(request: Request) {
         email,
         password: hashedPassword,
         role: 'TEACHER',
+        mustChangePassword: true,
         teacherAssignments: {
           create: (assignments || []).map((a: StaffAssignmentPayload) => ({
             classId: a.classId,

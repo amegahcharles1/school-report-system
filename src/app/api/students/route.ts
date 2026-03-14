@@ -10,11 +10,15 @@ const CHARLES_EMAIL = 'charles@school.com';
 // GET all students (with optional class/search filters)
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get('classId');
     const search = searchParams.get('search');
 
-    const session = await getServerSession(authOptions);
     type SessionUser = { role?: string; email?: string };
     const role = (session?.user as SessionUser)?.role;
     const email = (session?.user as SessionUser)?.email;

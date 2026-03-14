@@ -25,15 +25,16 @@ import {
 } from 'lucide-react';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Students', href: '/students', icon: Users },
-  { name: 'Staff', href: '/staff', icon: Shield },
-  { name: 'Subjects', href: '/subjects', icon: BookOpen },
-  { name: 'Classes', href: '/classes', icon: School },
-  { name: 'Marks Entry', href: '/marks', icon: ClipboardEdit },
-  { name: 'Results', href: '/results', icon: BarChart3 },
-  { name: 'Report Cards', href: '/report-cards', icon: FileText },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard, roles: ['ADMIN', 'TEACHER'] },
+  { name: 'My Results', href: '/student', icon: BookOpen, roles: ['STUDENT'] },
+  { name: 'Students', href: '/students', icon: Users, roles: ['ADMIN', 'TEACHER'] },
+  { name: 'Staff', href: '/staff', icon: Shield, roles: ['ADMIN'] },
+  { name: 'Subjects', href: '/subjects', icon: BookOpen, roles: ['ADMIN', 'TEACHER'] },
+  { name: 'Classes', href: '/classes', icon: School, roles: ['ADMIN', 'TEACHER'] },
+  { name: 'Marks Entry', href: '/marks', icon: ClipboardEdit, roles: ['ADMIN', 'TEACHER'] },
+  { name: 'Results', href: '/results', icon: BarChart3, roles: ['ADMIN', 'TEACHER'] },
+  { name: 'Report Cards', href: '/report-cards', icon: FileText, roles: ['ADMIN', 'TEACHER'] },
+  { name: 'Settings', href: '/settings', icon: Settings, roles: ['ADMIN'] },
 ];
 
 export default function Sidebar() {
@@ -60,8 +61,9 @@ export default function Sidebar() {
   const role = (session?.user as any)?.role || 'TEACHER';
 
   const filteredNavigation = navigation.filter((item) => {
-    if (role === 'TEACHER') {
-      return !['Staff', 'Subjects', 'Classes', 'Settings'].includes(item.name);
+    // If an item explicitly specifies allowed roles, respect it.
+    if (item.roles) {
+      return item.roles.includes(role);
     }
     return true;
   });
@@ -91,7 +93,11 @@ export default function Sidebar() {
               Report Card System
             </h1>
             <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-              {role === 'ADMIN' ? '⚡ Admin Portal' : '📚 Teacher Portal'}
+              {role === 'ADMIN'
+                ? '⚡ Admin Portal'
+                : role === 'STUDENT'
+                ? '🎓 Student Portal'
+                : '📚 Teacher Portal'}
             </p>
           </div>
         )}

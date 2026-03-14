@@ -1,21 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAllowedSubjectIds } from '@/lib/access';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 export async function GET() {
   try {
-    type SessionUser = { role?: string; id?: string };
     const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    type SessionUser = { role?: string; id?: string };
     const userRole = (session?.user as SessionUser)?.role;
     const userId = (session?.user as SessionUser)?.id;
 
-    const whereClause = userRole === 'TEACHER' ? {
-      OR: [
-        { teacherAssignments: { some: { userId } } },
-        { subjectAssignments: { some: { class: { classTeacherId: userId } } } }
-      ]
-    } : {};
+    let whereClause: any = {};
+
+    if (userRole === 'TEACHER') {
+      whereClause = {
+        OR: [
+          { teacherAssignments: { some: { userId } } },
+          { subjectAssignments: { some: { class: { classTeacherId: userId } } } }
+        ]
+      };
+    } else if (userRole === 'STUDENT') {
+      const allowedSubjectIds = await getAllowedSubjectIds();
+      if (allowedSubjectIds && allowedSubjectIds.length > 0) {
+        whereClause = { id: { in: allowedSubjectIds } };
+      } else {
+        // No allowed subjects for this student
+        return NextResponse.json([]);
+      }
+    }
 
     const subjects = await prisma.subject.findMany({
       where: whereClause,

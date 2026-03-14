@@ -3,10 +3,35 @@ import type { AssessmentAudit, Student } from '@prisma/client';
 import type { MarksEntry } from '@/types';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+async function assertTeacherCanAccess(userId: string, classId: string, subjectId: string) {
+  // Allow if the teacher is assigned to this subject/class combination
+  const assignment = await prisma.teacherAssignment.findFirst({
+    where: { userId, classId, subjectId },
+  });
+
+  // Also allow if the teacher is the class teacher (oversight) for that class
+  const classTeacher = await prisma.class.findUnique({
+    where: { id: classId },
+    select: { classTeacherId: true },
+  });
+
+  return Boolean(assignment || classTeacher?.classTeacherId === userId);
+}
 
 // GET marks for a class/subject/term
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = session.user.id;
+    const role = (session.user as any).role;
+
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get('classId');
     const subjectId = searchParams.get('subjectId');
@@ -14,6 +39,17 @@ export async function GET(request: NextRequest) {
 
     if (!classId || !subjectId || !termId) {
       return NextResponse.json({ error: 'classId, subjectId, and termId are required' }, { status: 400 });
+    }
+
+    if (role === 'TEACHER') {
+      const allowed = await assertTeacherCanAccess(userId, classId, subjectId);
+      if (!allowed) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+
+    if (role === 'STUDENT') {
+      return NextResponse.json({ error: 'Students cannot access marks entry' }, { status: 403 });
     }
 
     // Get students in the class
@@ -40,11 +76,11 @@ export async function GET(request: NextRequest) {
       return {
         studentId: student.id,
         studentName: `${student.lastName} ${student.firstName}`,
-        test1: assessment?.test1 ?? 0,
-        assignment1: assessment?.assignment1 ?? 0,
-        test2: assessment?.test2 ?? 0,
-        assignment2: assessment?.assignment2 ?? 0,
-        examScore: assessment?.examScore ?? 0,
+        test1: assessment?.test1 ?? null,
+        assignment1: assessment?.assignment1 ?? null,
+        test2: assessment?.test2 ?? null,
+        assignment2: assessment?.assignment2 ?? null,
+        examScore: assessment?.examScore ?? null,
         status: assessment?.status ?? 'NOT_STARTED',
         id: assessment?.id ?? null,
         audits: assessment?.audits ?? [],
@@ -59,9 +95,6 @@ export async function GET(request: NextRequest) {
 }
 
 // POST/PUT save marks (upsert)
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -71,10 +104,22 @@ export async function POST(request: NextRequest) {
     
     const userId = session.user.id;
     const body = await request.json();
-    const { subjectId, termId, marks } = body;
+    const { classId, subjectId, termId, marks } = body as { classId?: string; subjectId?: string; termId?: string; marks?: any[] };
 
-    if (!subjectId || !termId || !marks?.length) {
-      return NextResponse.json({ error: 'subjectId, termId, and marks are required' }, { status: 400 });
+    if (!classId || !subjectId || !termId || !marks?.length) {
+      return NextResponse.json({ error: 'classId, subjectId, termId, and marks are required' }, { status: 400 });
+    }
+
+    // Authorization
+    if (role === 'STUDENT') {
+      return NextResponse.json({ error: 'Students cannot update marks' }, { status: 403 });
+    }
+
+    if (role === 'TEACHER') {
+      const allowed = await assertTeacherCanAccess(userId, classId, subjectId);
+      if (!allowed) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
     const results = [];
@@ -95,16 +140,23 @@ export async function POST(request: NextRequest) {
     for (const mark of marks as MarkPayload[]) {
       const existing = existingMap.get(mark.studentId);
 
-      const newTest1 = mark.test1 ?? 0;
-      const newAssignment1 = mark.assignment1 ?? 0;
-      const newTest2 = mark.test2 ?? 0;
-      const newAssignment2 = mark.assignment2 ?? 0;
-      const newExamScore = mark.examScore ?? 0;
+      const newTest1 = typeof mark.test1 === 'number' ? mark.test1 : null;
+      const newAssignment1 = typeof mark.assignment1 === 'number' ? mark.assignment1 : null;
+      const newTest2 = typeof mark.test2 === 'number' ? mark.test2 : null;
+      const newAssignment2 = typeof mark.assignment2 === 'number' ? mark.assignment2 : null;
+      const newExamScore = typeof mark.examScore === 'number' ? mark.examScore : null;
       
-      // Determine completion status based on actual input
-      const completionStatus = (newTest1 > 0 || newAssignment1 > 0 || newExamScore > 0) ? 'COMPLETED' : 'IN_PROGRESS';
+      // Determine completion status based on any mark being entered
+      const completionStatus = [newTest1, newAssignment1, newTest2, newAssignment2, newExamScore].some((v) => typeof v === 'number')
+        ? 'COMPLETED'
+        : 'IN_PROGRESS';
 
       if (!existing) {
+        // Only create assessment if there is some entered data
+        if (completionStatus === 'IN_PROGRESS' && [newTest1, newAssignment1, newTest2, newAssignment2, newExamScore].every((v) => v === null)) {
+          continue; // nothing entered yet
+        }
+
         // Totally new mark entry
         const createdObj = await prisma.assessment.create({
           data: {

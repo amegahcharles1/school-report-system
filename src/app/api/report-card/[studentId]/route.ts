@@ -1,6 +1,9 @@
 // API: Report Card data for a single student
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { getAllowedClassIds, getAllowedSubjectIds } from '@/lib/access';
 import { 
   calculateFinalTotal, 
   getGradeAndRemark, 
@@ -14,9 +17,33 @@ export async function GET(
   { params }: { params: Promise<{ studentId: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = session.user.id;
+    const role = (session.user as any).role;
+    const studentSessionId = (session.user as any).studentId as string | undefined;
+
     const { studentId } = await params;
     const { searchParams } = new URL(request.url);
     const termId = searchParams.get('termId');
+
+    // Students can only view their own report
+    if (role === 'STUDENT' && studentSessionId !== studentId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Teachers can only view students and subjects assigned to them
+    let allowedSubjectIds: string[] | null = null;
+    if (role === 'TEACHER') {
+      const allowedClassIds = await getAllowedClassIds();
+      if (allowedClassIds && !allowedClassIds.includes((await prisma.student.findUnique({ where: { id: studentId }, select: { classId: true } }))?.classId ?? '')) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      allowedSubjectIds = await getAllowedSubjectIds();
+    }
 
     const student = await prisma.student.findUnique({
       where: { id: studentId },
@@ -58,7 +85,11 @@ export async function GET(
 
     // Get this student's assessments
     const assessments = await prisma.assessment.findMany({
-      where: { studentId, termId: actualTermId },
+      where: {
+        studentId,
+        termId: actualTermId,
+        ...(allowedSubjectIds ? { subjectId: { in: allowedSubjectIds } } : {}),
+      },
       include: { subject: true },
     });
 

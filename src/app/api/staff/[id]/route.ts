@@ -41,6 +41,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const updateData: Prisma.UserUpdateInput = { name, email };
     if (newPassword && newPassword.trim().length >= 6) {
       updateData.password = await bcrypt.hash(newPassword.trim(), 10);
+      // Force the user to update password after an admin reset or manual update
+      updateData.mustChangePassword = true;
     }
 
     // Update user details

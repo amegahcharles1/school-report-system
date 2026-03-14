@@ -1,16 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { School, Lock, Mail, AlertCircle } from "lucide-react";
+import { School, Lock, Mail, AlertCircle, User } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const [loginType, setLoginType] = useState<'teacher' | 'student'>('teacher');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [studentId, setStudentId] = useState("");
+  const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (session?.user?.mustChangePassword) {
+      router.push('/change-password');
+    }
+  }, [router, session]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,20 +28,25 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await signIn("credentials", {
-        email,
-        password,
+      const provider = loginType === 'student' ? 'student' : 'credentials';
+      const payload: any = loginType === 'student'
+        ? { studentId, pin }
+        : { email, password };
+
+      const res = await signIn(provider, {
+        ...payload,
         redirect: false,
       });
 
       if (res?.error) {
-        setError("Invalid email or password");
+        setError(loginType === 'student' ? 'Invalid student ID or PIN' : 'Invalid email or password');
         setLoading(false);
       } else {
-        router.push("/");
+        router.push(loginType === 'student' ? '/student' : '/');
         router.refresh();
       }
     } catch (err) {
+      console.error(err);
       setError("An unexpected error occurred");
       setLoading(false);
     }
@@ -67,53 +82,127 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="space-y-3">
-              <label
-                htmlFor="email"
-                className="block text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 ml-1"
-              >
-                Email Address
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none transition-colors group-focus-within:text-blue-500 text-gray-400">
-                  <Mail className="h-5 w-5" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-14 pr-6 py-4 border-2 border-transparent bg-gray-100/50 dark:bg-gray-800/50 rounded-2xl focus:bg-white dark:focus:bg-gray-800 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-gray-900 dark:text-white sm:text-sm transition-all duration-300 outline-none"
-                  placeholder="name@school.com"
-                />
+            <div className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Sign in as</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLoginType('teacher')}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${loginType === 'teacher' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 shadow-sm'}`}
+                >
+                  Teacher
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLoginType('student')}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${loginType === 'student' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 shadow-sm'}`}
+                >
+                  Student
+                </button>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <label
-                htmlFor="password"
-                className="block text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 ml-1"
-              >
-                Password
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none transition-colors group-focus-within:text-blue-500 text-gray-400">
-                  <Lock className="h-5 w-5" />
+            {loginType === 'teacher' ? (
+              <>
+                <div className="space-y-3">
+                  <label
+                    htmlFor="email"
+                    className="block text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 ml-1"
+                  >
+                    Email Address
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none transition-colors group-focus-within:text-blue-500 text-gray-400">
+                      <Mail className="h-5 w-5" />
+                    </div>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="block w-full pl-14 pr-6 py-4 border-2 border-transparent bg-gray-100/50 dark:bg-gray-800/50 rounded-2xl focus:bg-white dark:focus:bg-gray-800 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-gray-900 dark:text-white sm:text-sm transition-all duration-300 outline-none"
+                      placeholder="name@school.com"
+                    />
+                  </div>
                 </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-14 pr-6 py-4 border-2 border-transparent bg-gray-100/50 dark:bg-gray-800/50 rounded-2xl focus:bg-white dark:focus:bg-gray-800 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-gray-900 dark:text-white sm:text-sm transition-all duration-300 outline-none"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
+
+                <div className="space-y-3">
+                  <label
+                    htmlFor="password"
+                    className="block text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 ml-1"
+                  >
+                    Password
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none transition-colors group-focus-within:text-blue-500 text-gray-400">
+                      <Lock className="h-5 w-5" />
+                    </div>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="block w-full pl-14 pr-6 py-4 border-2 border-transparent bg-gray-100/50 dark:bg-gray-800/50 rounded-2xl focus:bg-white dark:focus:bg-gray-800 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-gray-900 dark:text-white sm:text-sm transition-all duration-300 outline-none"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  <label
+                    htmlFor="studentId"
+                    className="block text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 ml-1"
+                  >
+                    Student ID
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none transition-colors group-focus-within:text-blue-500 text-gray-400">
+                      <User className="h-5 w-5" />
+                    </div>
+                    <input
+                      id="studentId"
+                      name="studentId"
+                      type="text"
+                      required
+                      value={studentId}
+                      onChange={(e) => setStudentId(e.target.value)}
+                      className="block w-full pl-14 pr-6 py-4 border-2 border-transparent bg-gray-100/50 dark:bg-gray-800/50 rounded-2xl focus:bg-white dark:focus:bg-gray-800 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-gray-900 dark:text-white sm:text-sm transition-all duration-300 outline-none"
+                      placeholder="e.g. stu_abc123"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label
+                    htmlFor="pin"
+                    className="block text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 ml-1"
+                  >
+                    PIN
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none transition-colors group-focus-within:text-blue-500 text-gray-400">
+                      <Lock className="h-5 w-5" />
+                    </div>
+                    <input
+                      id="pin"
+                      name="pin"
+                      type="password"
+                      required
+                      value={pin}
+                      onChange={(e) => setPin(e.target.value)}
+                      className="block w-full pl-14 pr-6 py-4 border-2 border-transparent bg-gray-100/50 dark:bg-gray-800/50 rounded-2xl focus:bg-white dark:focus:bg-gray-800 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-gray-900 dark:text-white sm:text-sm transition-all duration-300 outline-none"
+                      placeholder="••••"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             <button
               type="submit"
