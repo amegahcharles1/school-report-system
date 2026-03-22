@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import crypto from 'crypto';
 import { getServerSession } from 'next-auth/next';
@@ -32,7 +32,11 @@ export async function POST(request: NextRequest) {
 
     const uniqueId = crypto.randomUUID();
     const filename = `logo-${uniqueId}.${extension}`;
-    const filePath = join(process.cwd(), 'public/uploads', filename);
+    const uploadDir = join(process.cwd(), 'public', 'uploads');
+    const filePath = join(uploadDir, filename);
+
+    // Ensure the uploads directory exists
+    await mkdir(uploadDir, { recursive: true });
 
     await writeFile(filePath, buffer);
 
