@@ -240,7 +240,7 @@ export default function StaffPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-6">
         {loading ? (
           [1,2,3].map(i => <div key={i} className="h-32 premium-card animate-pulse" />)
-        ) : staff.length === 0 ? (
+        ) : (!Array.isArray(staff) || staff.length === 0) ? (
           <div className="col-span-full py-24 text-center flex flex-col items-center justify-center bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-100 dark:border-slate-800">
             <Shield className="w-16 h-16 text-slate-200 mb-6" />
             <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">No active faculty</h3>
@@ -274,7 +274,7 @@ export default function StaffPage() {
 
               {/* Jurisdictions */}
               <div className="flex flex-wrap gap-2 flex-[2]">
-                {teacher.teacherAssignments?.length > 0 ? (
+                {Array.isArray(teacher.teacherAssignments) && teacher.teacherAssignments?.length > 0 ? (
                   teacher.teacherAssignments.map((ta: any) => (
                     <Badge
                       key={ta.id}
@@ -499,7 +499,7 @@ function AssignmentBuilder({ arr, setArr, classes, subjects, addRow, removeRow, 
         </Button>
       </div>
       
-      {arr.length === 0 ? (
+      {!Array.isArray(arr) || arr.length === 0 ? (
         <div className="text-center py-10 bg-slate-50 dark:bg-slate-950 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
           <p className="text-xs font-bold text-slate-400 italic">No academic domains assigned</p>
         </div>

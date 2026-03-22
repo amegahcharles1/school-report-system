@@ -208,7 +208,7 @@ export default function StudentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {students.map((student: any, index: number) => (
+                {Array.isArray(students) && students.map((student: any, index: number) => (
                   <tr key={student.id}>
                     <td className="w-16 text-slate-400 font-medium">{index + 1}</td>
                     <td className="font-mono text-xs">{student.admissionNumber || 'N/A'}</td>

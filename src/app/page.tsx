@@ -145,7 +145,7 @@ export default function Dashboard() {
               <Badge variant="outline">Grade Distribution</Badge>
             </div>
             <div className="h-80 w-full font-bold">
-              {stats?.gradeDistribution && stats.gradeDistribution.length > 0 ? (
+              {stats && Array.isArray(stats.gradeDistribution) && stats.gradeDistribution.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={stats.gradeDistribution} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -249,7 +249,7 @@ export default function Dashboard() {
             </h3>
             
             <div className="space-y-6 flex-1">
-              {stats?.recentActivity && stats.recentActivity.length > 0 ? (
+              {stats && Array.isArray(stats.recentActivity) && stats.recentActivity.length > 0 ? (
                 stats.recentActivity.map((activity, idx) => (
                   <div key={idx} className="flex gap-4 group">
                     <div className="mt-1 flex flex-col items-center">
