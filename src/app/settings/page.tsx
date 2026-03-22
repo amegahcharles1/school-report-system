@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { 
   Settings as SettingsIcon, Save, Percent, Award, BookOpen, 
   User as UserIcon, Building2, Layout, Plus, Trash2, ShieldCheck, 
-  ChevronRight, Calculator, GraduationCap, Image as ImageIcon, Calendar, FileText
+  ChevronRight, Calculator, GraduationCap, Image as ImageIcon, Calendar, FileText, UploadCloud, Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
@@ -146,6 +146,40 @@ export default function SettingsPage() {
     saveMutation.mutate();
   };
 
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check size
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image size must be less than 2MB');
+      return;
+    }
+
+    setUploadingLogo(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || 'Failed to upload image');
+      
+      setSettings((prev: any) => ({ ...prev, logoUrl: data.url }));
+      toast.success('Logo uploaded successfully! Save configuration to apply.');
+    } catch (err: any) {
+      toast.error(err.message || 'Upload failed');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   // --- Grading Management ---
   const addGrade = () => {
     setGrades([...grades, { minScore: 0, maxScore: 0, grade: '', remark: '' }]);
@@ -284,15 +318,29 @@ export default function SettingsPage() {
                   <input type="text" name="schoolAddress" value={settings.schoolAddress || ''} onChange={handleSettingsChange} className="settings-input" />
                 </div>
                 <div className="col-span-1 md:col-span-2">
-                  <label className="block text-xs font-black uppercase text-gray-500 mb-2">School Logo URL</label>
-                  <div className="flex gap-3">
-                    <input type="text" name="logoUrl" value={settings.logoUrl || ''} onChange={handleSettingsChange} className="settings-input font-mono text-sm flex-1" placeholder="https://example.com/logo.png" />
+                  <label className="block text-xs font-black uppercase text-gray-500 mb-2">School Logo Configuration</label>
+                  <div className="flex flex-col gap-4">
+                    <div className="flex gap-3">
+                      <input type="text" name="logoUrl" value={settings.logoUrl || ''} onChange={handleSettingsChange} className="settings-input font-mono text-sm flex-1" placeholder="HTTPS Link or /uploads/... path" />
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                      <label className={`flex items-center justify-center gap-2 px-6 py-2 border-2 border-dashed border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/10 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-xl cursor-pointer transition-all ${uploadingLogo ? 'opacity-50 pointer-events-none' : ''}`}>
+                         {uploadingLogo ? <Loader2 className="w-5 h-5 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
+                         <span className="font-bold text-sm">{uploadingLogo ? 'Uploading...' : 'Upload Locally Image'}</span>
+                         <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploadingLogo} />
+                      </label>
+                      <p className="text-[10px] text-slate-400">Supported rules: JPG, PNG, WEBP. Max size: 2MB.</p>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-1">Provide a direct secure link (HTTPS) or relative path to a hosted logo. E.g `/logo.png`</p>
                 </div>
                 {settings.logoUrl && (
-                  <div className="flex items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl">
-                    <img src={settings.logoUrl} alt="Logo Preview" className="max-h-16 max-w-[150px] object-contain" onError={(e) => { (e.target as HTMLImageElement).src = ''; }} />
+                  <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900 relative">
+                    <img src={settings.logoUrl} alt="Logo Preview" className="max-h-20 max-w-[150px] object-contain" onError={(e) => { (e.target as HTMLImageElement).src = ''; }} />
+                    <button onClick={() => setSettings({...settings, logoUrl: ''})} className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-all">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <span className="text-[10px] font-bold text-gray-400 mt-2">Active Preview</span>
                   </div>
                 )}
               </div>
