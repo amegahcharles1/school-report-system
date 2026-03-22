@@ -38,7 +38,20 @@ export async function POST(request: NextRequest) {
     }
 
     const academicYear = await prisma.academicYear.create({
-      data: { name, isCurrent: !!isCurrent },
+      data: { 
+        name, 
+        isCurrent: !!isCurrent,
+        terms: {
+          create: [
+            { name: 'Term 1', isCurrent: false },
+            { name: 'Term 2', isCurrent: false },
+            { name: 'Term 3', isCurrent: false },
+          ]
+        }
+      },
+      include: {
+        terms: true
+      }
     });
 
     return NextResponse.json(academicYear, { status: 201 });

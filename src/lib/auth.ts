@@ -21,7 +21,11 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!user) {
-          return null;
+          throw new Error("Invalid credentials");
+        }
+
+        if ((user as any).isActive === false) {
+          throw new Error("This account has been suspended by the administrator.");
         }
 
         const isPasswordValid = await bcrypt.compare(

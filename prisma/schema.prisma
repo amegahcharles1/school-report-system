@@ -80,6 +80,7 @@ model User {
   email              String              @unique
   password           String // hashed password
   role               String              @default("TEACHER") // "ADMIN" or "TEACHER"
+  isActive           Boolean             @default(true) // For soft deletion / suspensions
   teacherAssignments TeacherAssignment[]
   classOversight     Class[]             @relation("ClassTeacher")
   createdMarks       Assessment[]        @relation("AssessmentCreator")

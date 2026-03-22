@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { 
   Settings as SettingsIcon, Save, Percent, Award, BookOpen, 
   User as UserIcon, Building2, Layout, Plus, Trash2, ShieldCheck, 
-  ChevronRight, Calculator, GraduationCap, Image as ImageIcon, Calendar, FileText, UploadCloud, Loader2
+  ChevronRight, Calculator, GraduationCap, Image as ImageIcon, Calendar, FileText, UploadCloud, Loader2, CalendarRange, Clock
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
@@ -102,6 +102,16 @@ export default function SettingsPage() {
       return res.json();
     }
   });
+
+  const { data: years = [], refetch: refetchYears } = useQuery({
+    queryKey: ['academic-years'],
+    queryFn: async () => {
+      const res = await fetch('/api/academic-years');
+      return res.json();
+    }
+  });
+
+  const [newYearName, setNewYearName] = useState('');
 
   const handleSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -216,12 +226,39 @@ export default function SettingsPage() {
 
   const selectedTermObj = terms.find((t: any) => t.id === settings.currentTermId);
 
+  const [creatingYear, setCreatingYear] = useState(false);
+
+  const handleCreateYear = async () => {
+    if (!newYearName.trim()) {
+      toast.error('Enter an academic year name (e.g. 2026/2027)');
+      return;
+    }
+    setCreatingYear(true);
+    try {
+      const res = await fetch('/api/academic-years', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newYearName, isCurrent: false })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('New Academic Year instantiated with 3 internal terms!');
+      setNewYearName('');
+      refetchYears();
+    } catch (err: any) {
+      toast.error(err.message || 'Creation failed');
+    } finally {
+      setCreatingYear(false);
+    }
+  };
+
   const tabs = [
     { id: 'school', label: '1. School Profile', icon: Building2 },
     { id: 'report', label: '2. Report System', icon: FileText },
     { id: 'grading', label: '3. Grading System', icon: GraduationCap },
     { id: 'marks', label: '4. Marks Configuration', icon: Calculator },
-    { id: 'layout', label: '5. Terminology & Layout', icon: Layout }
+    { id: 'layout', label: '5. Terminology & Layout', icon: Layout },
+    { id: 'sessions', label: '6. Academic Sessions', icon: CalendarRange }
   ];
 
   return (
@@ -620,6 +657,70 @@ export default function SettingsPage() {
                   <div><label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Class Average Label</label><input type="text" name="classAverageLabel" value={settings.classAverageLabel || ''} onChange={handleSettingsChange} className="settings-input" /></div>
                   <div><label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Highest Score Label</label><input type="text" name="highestScoreLabel" value={settings.highestScoreLabel || ''} onChange={handleSettingsChange} className="settings-input" /></div>
                   <div><label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Lowest Score Label</label><input type="text" name="lowestScoreLabel" value={settings.lowestScoreLabel || ''} onChange={handleSettingsChange} className="settings-input" /></div>
+                </div>
+              </div>
+             </div>
+          </div>
+        )}
+
+        {/* TAB 6: Academic Sessions */}
+        {activeTab === 'sessions' && (
+          <div className="p-6 md:p-8 space-y-10 animate-fade-in">
+             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+              <CalendarRange className="w-6 h-6 text-indigo-500" />
+              <h2 className="text-lg font-black text-slate-800 dark:text-slate-100">Academic Sessions Engine</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 mb-1">Establish New Academic Year</h3>
+                  <p className="text-xs text-slate-500 mb-4">Initializes a completely isolated academic calendar matrix bridging assignments, marks, and broader archives seamlessly. 3 default terms will be auto-generated.</p>
+                  
+                  <div className="flex items-center gap-3">
+                    <input 
+                      type="text" 
+                      value={newYearName} 
+                      onChange={e => setNewYearName(e.target.value)} 
+                      className="settings-input flex-1 font-mono text-sm uppercase" 
+                      placeholder="e.g. 2026/2027" 
+                    />
+                    <button 
+                      onClick={handleCreateYear}
+                      disabled={creatingYear}
+                      className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-bold rounded-xl shadow-md transition-all text-sm shrink-0"
+                    >
+                      {creatingYear ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Spawn Year
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">System Architecture Index</h3>
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 rounded-2xl">
+                  {years.map((y: any) => (
+                    <div key={y.id} className="p-5 bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800 rounded-2xl">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-black text-lg text-indigo-900 dark:text-indigo-400 font-mono">{y.name}</h4>
+                        <div className="flex gap-2 text-xs font-bold text-slate-500">
+                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {(y.terms || []).length} Terms</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(y.terms || []).map((t: any) => (
+                          <div key={t.id} className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${settings.currentTermId === t.id ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500'}`}>
+                            {t.name}
+                            {settings.currentTermId === t.id && <span className="ml-2 bg-indigo-500 text-white px-1.5 py-0.5 rounded text-[9px] uppercase tracking-widest">Active</span>}
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-4 italic font-medium tracking-tight">To switch the globally active term and year, select it from the dropdown in "1. School Profile".</p>
+                    </div>
+                  ))}
+                  {years.length === 0 && (
+                    <div className="p-10 text-center text-slate-400 font-bold border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">No Academic Calendars initialized.</div>
+                  )}
                 </div>
               </div>
             </div>

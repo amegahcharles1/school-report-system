@@ -23,7 +23,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params;
     const body = await request.json();
-    const { name, email, newPassword, assignments } = body as { name: string; email: string; newPassword?: string; assignments?: StaffAssignmentPayload[] };
+    const { name, email, newPassword, assignments, isActive } = body as { name: string; email: string; newPassword?: string; assignments?: StaffAssignmentPayload[], isActive?: boolean };
 
     if (!name || !email) {
       return NextResponse.json({ error: 'Name and email are required' }, { status: 400 });
@@ -37,8 +37,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'That email is already used by another account' }, { status: 400 });
     }
 
-    // Build update data
-    const updateData: Prisma.UserUpdateInput = { name, email };
+    const updateData: any = { name, email };
+    if (isActive !== undefined) updateData.isActive = isActive;
     if (newPassword && newPassword.trim().length >= 6) {
       updateData.password = await bcrypt.hash(newPassword.trim(), 10);
     }

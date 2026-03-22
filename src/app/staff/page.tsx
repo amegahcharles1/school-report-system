@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import {
   Shield, UserPlus, Trash2, Edit, Save, X,
   BookOpen, AlertCircle, RefreshCw,
-  CheckCircle, Mail, User, Lock, Loader2, ShieldCheck, ChevronRight
+  CheckCircle, Mail, User, Lock, Loader2, ShieldCheck, ChevronRight, PowerOff, UserMinus, UserCheck
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -31,6 +31,7 @@ export default function StaffPage() {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPassword, setEditPassword] = useState('');
+  const [editIsActive, setEditIsActive] = useState(true);
   const [editAssignments, setEditAssignments] = useState<{ classId: string; subjectId: string }[]>([]);
 
   // Queries
@@ -142,6 +143,7 @@ export default function StaffPage() {
     setEditingTeacher(teacher);
     setEditName(teacher.name);
     setEditEmail(teacher.email);
+    setEditIsActive(teacher.isActive !== false);
     setEditPassword('');
     setEditAssignments(
       teacher.teacherAssignments?.map((ta: any) => ({
@@ -160,6 +162,7 @@ export default function StaffPage() {
     saveMutation.mutate({
       name: editName,
       email: editEmail,
+      isActive: editIsActive,
       newPassword: editPassword || undefined,
       assignments: editAssignments,
     });
@@ -256,7 +259,12 @@ export default function StaffPage() {
                   {teacher.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-xl font-black text-slate-900 dark:text-white truncate">{teacher.name}</h3>
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white truncate">{teacher.name}</h3>
+                    {teacher.isActive === false && (
+                      <Badge variant="danger" className="bg-rose-100 text-rose-700 border-rose-200">Suspended</Badge>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 mt-1">
                     <Mail className="w-3 h-3 text-slate-400" />
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-bold truncate tracking-tight">{teacher.email}</p>
@@ -306,11 +314,27 @@ export default function StaffPage() {
                 >
                   Configure
                 </Button>
+                
+                <Button
+                  onClick={() => {
+                    if (confirm(`Are you sure you want to ${teacher.isActive === false ? 'reactivate' : 'suspend'} this account?`)) {
+                       saveMutation.mutate({ ...teacher, isActive: teacher.isActive === false });
+                    }
+                  }}
+                  variant="outline"
+                  size="sm"
+                  icon={teacher.isActive === false ? <UserCheck className="w-3.5 h-3.5" /> : <UserMinus className="w-3.5 h-3.5" />}
+                  className={`text-[10px] font-black uppercase tracking-widest h-9 ${teacher.isActive === false ? 'border-emerald-100 text-emerald-600 hover:bg-emerald-50' : 'border-amber-100 text-amber-600 hover:bg-amber-50'}`}
+                >
+                  {teacher.isActive === false ? 'Activate' : 'Suspend'}
+                </Button>
+
                 <Button
                   onClick={() => handleDelete(teacher.id, teacher.name)}
                   variant="ghost"
                   size="icon"
                   className="h-9 w-9 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
+                  title="Permanent Deletion"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -397,6 +421,17 @@ export default function StaffPage() {
                 onChange={e => setEditEmail(e.target.value)} 
                 required
               />
+            </div>
+            
+            <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <div>
+                <p className="text-sm font-bold">Account Access Status</p>
+                <p className="text-xs text-slate-500">Enable or disable login access without deleting data</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={editIsActive} onChange={e => setEditIsActive(e.target.checked)} className="sr-only peer" />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+              </label>
             </div>
           </div>
 
