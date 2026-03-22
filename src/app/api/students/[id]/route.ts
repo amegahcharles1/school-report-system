@@ -59,10 +59,46 @@ export async function DELETE(
     if (!studentExists) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     if (!(await canAccessClass(studentExists.classId))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 
-    await prisma.student.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+    const { searchParams } = new URL(request.url);
+    const permanent = searchParams.get('permanent') === 'true';
+
+    if (permanent) {
+        // Only Admin should do this? For now follow the class access
+        await prisma.student.delete({ where: { id } });
+    } else {
+        await prisma.student.update({
+            where: { id },
+            data: { isDeleted: true, deletedAt: new Date() }
+        });
+    }
+    return NextResponse.json({ success: true, permanent });
   } catch (error) {
     console.error('Student DELETE error:', error);
     return NextResponse.json({ error: 'Failed to delete student' }, { status: 500 });
+  }
+}
+
+// PATCH for specific actions like restoration
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const { action } = await request.json();
+
+    if (action === 'restore') {
+      const student = await prisma.student.update({
+        where: { id },
+        data: { isDeleted: false, deletedAt: null },
+        include: { class: true }
+      });
+      return NextResponse.json(student);
+    }
+    
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+  } catch (error) {
+    console.error('Student PATCH error:', error);
+    return NextResponse.json({ error: 'Failed to perform action' }, { status: 500 });
   }
 }

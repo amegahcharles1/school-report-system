@@ -22,6 +22,8 @@ import {
   LogOut,
   Menu,
   X,
+  Bell,
+  History,
 } from 'lucide-react';
 import { useSettings } from '@/contexts/SettingsContext';
 
@@ -34,6 +36,8 @@ const navigation = [
   { name: 'Marks Entry', href: '/marks', icon: ClipboardEdit },
   { name: 'Results', href: '/results', icon: BarChart3 },
   { name: 'Report Cards', href: '/report-cards', icon: FileText },
+  { name: 'Messages', href: '/messages', icon: Bell },
+  { name: 'Audit Logs', href: '/audit-logs', icon: History, adminOnly: true },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -62,6 +66,7 @@ export default function Sidebar() {
   const role = (session?.user as any)?.role || 'TEACHER';
 
   const filteredNavigation = navigation.filter((item) => {
+    if (item.adminOnly && role !== 'ADMIN') return false;
     if (role === 'TEACHER') {
       return !['Staff', 'Subjects', 'Classes', 'Settings'].includes(item.name);
     }

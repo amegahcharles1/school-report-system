@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       const newExamScore = mark.examScore ?? 0;
       
       // Determine completion status based on actual input
-      const completionStatus = (newTest1 > 0 || newAssignment1 > 0 || newExamScore > 0) ? 'COMPLETED' : 'IN_PROGRESS';
+      const completionStatus = (newTest1 > 0 || newAssignment1 > 0 || newTest2 > 0 || newAssignment2 > 0 || newExamScore > 0) ? 'COMPLETED' : 'IN_PROGRESS';
 
       if (!existing) {
         // Totally new mark entry
@@ -144,9 +144,12 @@ export async function POST(request: NextRequest) {
             createdById: userId, updatedById: userId,
             audits: {
               create: [
-                 { field: 'test1', newValue: newTest1, modifiedById: userId, reason: 'Initial Entry' },
-                 { field: 'examScore', newValue: newExamScore, modifiedById: userId, reason: 'Initial Entry' }
-              ]
+                 { field: 'test1', newValue: newTest1, actionType: 'CREATE', modifiedById: userId, reason: 'Initial Entry' },
+                 { field: 'assignment1', newValue: newAssignment1, actionType: 'CREATE', modifiedById: userId, reason: 'Initial Entry' },
+                 { field: 'test2', newValue: newTest2, actionType: 'CREATE', modifiedById: userId, reason: 'Initial Entry' },
+                 { field: 'assignment2', newValue: newAssignment2, actionType: 'CREATE', modifiedById: userId, reason: 'Initial Entry' },
+                 { field: 'examScore', newValue: newExamScore, actionType: 'CREATE', modifiedById: userId, reason: 'Initial Entry' }
+              ].filter(a => (a.newValue ?? 0) > 0)
             }
           }
         });
@@ -159,11 +162,14 @@ export async function POST(request: NextRequest) {
           newValue?: number;
           modifiedById: string;
           reason: string;
+          actionType: string;
         }> = [];
         
-        if (existing.test1 !== newTest1) auditCreates.push({ field: 'test1', oldValue: existing.test1 ?? undefined, newValue: newTest1, modifiedById: userId, reason: 'Teacher updated score' });
-        if (existing.assignment1 !== newAssignment1) auditCreates.push({ field: 'assignment1', oldValue: existing.assignment1 ?? undefined, newValue: newAssignment1, modifiedById: userId, reason: 'Teacher updated score' });
-        if (existing.examScore !== newExamScore) auditCreates.push({ field: 'examScore', oldValue: existing.examScore ?? undefined, newValue: newExamScore, modifiedById: userId, reason: 'Teacher updated score' });
+        if (existing.test1 !== newTest1) auditCreates.push({ field: 'test1', oldValue: existing.test1 ?? undefined, newValue: newTest1, actionType: 'UPDATE', modifiedById: userId, reason: 'Teacher updated score' });
+        if (existing.assignment1 !== newAssignment1) auditCreates.push({ field: 'assignment1', oldValue: existing.assignment1 ?? undefined, newValue: newAssignment1, actionType: 'UPDATE', modifiedById: userId, reason: 'Teacher updated score' });
+        if (existing.test2 !== newTest2) auditCreates.push({ field: 'test2', oldValue: existing.test2 ?? undefined, newValue: newTest2, actionType: 'UPDATE', modifiedById: userId, reason: 'Teacher updated score' });
+        if (existing.assignment2 !== newAssignment2) auditCreates.push({ field: 'assignment2', oldValue: existing.assignment2 ?? undefined, newValue: newAssignment2, actionType: 'UPDATE', modifiedById: userId, reason: 'Teacher updated score' });
+        if (existing.examScore !== newExamScore) auditCreates.push({ field: 'examScore', oldValue: existing.examScore ?? undefined, newValue: newExamScore, actionType: 'UPDATE', modifiedById: userId, reason: 'Teacher updated score' });
 
         if (auditCreates.length > 0) {
           const updatedObj = await prisma.assessment.update({
@@ -179,8 +185,6 @@ export async function POST(request: NextRequest) {
             }
           });
           results.push(updatedObj);
-        } else {
-          // No changes detected, skip update
         }
       }
     }

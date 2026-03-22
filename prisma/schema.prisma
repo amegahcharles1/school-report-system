@@ -86,6 +86,8 @@ model User {
   createdMarks       Assessment[]        @relation("AssessmentCreator")
   updatedMarks       Assessment[]        @relation("AssessmentUpdater")
   auditLogs          AssessmentAudit[]   @relation("AuditModifier")
+  sentMessages      Message[]           @relation("SentMessages")
+  receivedMessages  Message[]           @relation("ReceivedMessages")
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 }
@@ -156,6 +158,8 @@ model Student {
   address         String       @default("")
   status          String       @default("Active")
   displayOrder    Int          @default(9999) // Custom sort order (lower = first)
+  isDeleted       Boolean      @default(false)
+  deletedAt       DateTime?
   classId      String
   class        Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
   assessments  Assessment[]
@@ -226,12 +230,29 @@ model AssessmentAudit {
   field          String     // "test1", "assignment1", "test2", "assignment2", "examScore", "status"
   oldValue       Float?
   newValue       Float?
+  oldValueString String?    // For non-float fields
+  newValueString String?
+  actionType     String     @default("UPDATE") // CREATE, UPDATE, DELETE
   reason         String?    // e.g "grading correction"
   
   assessment     Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   modifiedBy     User?      @relation("AuditModifier", fields: [modifiedById], references: [id], onDelete: SetNull)
   
   createdAt      DateTime   @default(now())
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  senderId    String
+  recipientId String?  // Optional for broadcast to all
+  subject     String   @default("")
+  content     String
+  type        String   @default("GENERAL") // REMINDER, INSTRUCTION, QUERY, APPRECIATION
+  isRead      Boolean  @default(false)
+  sentAt      DateTime @default(now())
+  
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   User?    @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: Cascade)
 }
 
 // Configurable grading system

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Users, Search, Plus, Trash2, Edit, Loader2 } from 'lucide-react';
+import { Users, Search, Plus, Trash2, Edit, Loader2, RotateCcw, AlertTriangle, ShieldAlert } from 'lucide-react';
 import Modal from '@/components/Modal';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ export default function StudentsPage() {
   const [filterClass, setFilterClass] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'roster' | 'trash'>('roster');
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -30,11 +31,12 @@ export default function StudentsPage() {
 
   // Queries
   const { data: students = [], isLoading: isLoadingStudents } = useQuery({
-    queryKey: ['students', search, filterClass],
+    queryKey: ['students', search, filterClass, activeTab],
     queryFn: async () => {
       let url = '/api/students?';
       if (search) url += `search=${search}&`;
-      if (filterClass) url += `classId=${filterClass}`;
+      if (filterClass) url += `classId=${filterClass}&`;
+      if (activeTab === 'trash') url += `includeDeleted=true`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch students');
       return res.json();
@@ -77,17 +79,33 @@ export default function StudentsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
+    mutationFn: async ({ id, permanent }: { id: string; permanent: boolean }) => {
+      const res = await fetch(`/api/students/${id}?permanent=${permanent}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete student');
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      toast.success(variables.permanent ? 'Student permanently erased' : 'Student moved to Recycle Bin');
+    },
+    onError: () => {
+      toast.error('Failed to eliminate record');
+    }
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/students/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'restore' }),
+      });
+      if (!res.ok) throw new Error('Failed to restore');
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
-      toast.success('Student deleted successfully');
-    },
-    onError: () => {
-      toast.error('Failed to delete student');
+      toast.success('Student record restored successfully');
     }
   });
 
@@ -133,23 +151,41 @@ export default function StudentsPage() {
   };
 
   const handleDelete = (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete ${name}? This will delete all their marks.`)) {
-      deleteMutation.mutate(id);
+    if (activeTab === 'trash') {
+      if (confirm(`CRITICAL ACTION: Permanently delete ${name}? This action is IRREVERSIBLE and will also erase all their assessment history.`)) {
+        deleteMutation.mutate({ id, permanent: true });
+      }
+    } else {
+      if (confirm(`Move ${name} to Recycle Bin? They will be removed from all active rosters but record will be preserved.`)) {
+        deleteMutation.mutate({ id, permanent: false });
+      }
     }
+  };
+
+  const handleRestore = (id: string) => {
+     restoreMutation.mutate(id);
   };
 
   return (
     <div className="space-y-6 animate-fade-in mb-10">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Users className="w-6 h-6 text-blue-600" /> Students Management
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+            <Users className="w-8 h-8 text-blue-600" /> Students Management
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage all students in the school</p>
+          <p className="text-slate-500 dark:text-slate-400 font-medium tracking-tight">Access and curate student academic identities</p>
         </div>
-        <Button onClick={openAddModal} variant="premium" className="shadow-lg">
-          <Plus className="w-4 h-4" /> Add Student
-        </Button>
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className={`px-4 py-1.5 cursor-pointer transition-all ${activeTab === 'roster' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800'}`} onClick={() => setActiveTab('roster')}>
+            Active Roster
+          </Badge>
+          <Badge variant="outline" className={`px-4 py-1.5 cursor-pointer transition-all ${activeTab === 'trash' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800'}`} onClick={() => setActiveTab('trash')}>
+            Recycle Bin
+          </Badge>
+          <Button onClick={openAddModal} variant="premium" className="shadow-lg shadow-blue-500/10 h-10 ml-2">
+            <Plus className="w-4 h-4" /> New Student
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -177,66 +213,83 @@ export default function StudentsPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="premium-card">
+      <div className={`premium-card overflow-hidden border-t-4 ${activeTab === 'trash' ? 'border-rose-600' : 'border-indigo-600'}`}>
         {isLoadingStudents ? (
-          <div className="p-12 flex flex-col items-center justify-center text-gray-500">
-            <Loader2 className="w-8 h-8 animate-spin mb-4 text-blue-600" />
-            <p className="animate-pulse">Loading students records...</p>
+          <div className="p-20 flex flex-col items-center justify-center text-slate-500">
+            <Loader2 className="w-10 h-10 animate-spin mb-4 text-blue-600" />
+            <p className="font-bold tracking-widest uppercase text-xs opacity-50">Synchronizing Rosters...</p>
           </div>
         ) : students.length === 0 ? (
-          <div className="p-16 text-center text-gray-500">
-            <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Users className="w-10 h-10 text-slate-300" />
+          <div className="p-24 text-center text-slate-500">
+            <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
+              {activeTab === 'trash' ? <Trash2 className="w-10 h-10 text-rose-300" /> : <Users className="w-10 h-10 text-blue-200" />}
             </div>
-            <p className="text-lg font-bold text-slate-900 dark:text-white">No students found</p>
-            <p className="text-sm mt-1">Adjust your filters or add a new student.</p>
+            <p className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
+              {activeTab === 'trash' ? 'Recycle Bin Empty' : 'No Students Captured'}
+            </p>
+            <p className="text-sm font-medium mt-2 max-w-xs mx-auto text-slate-400">
+              {activeTab === 'trash' ? 'Student records moved here will appear for restoration or permanent deletion.' : 'Begin by capturing your student details or adjust your search parameters.'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="data-table">
               <thead>
-                <tr>
-                  <th>No.</th>
-                  <th>ID / Admin No</th>
-                  <th>Student Name</th>
-                  <th>Class</th>
-                  <th>Gender</th>
-                  <th>Parent Info</th>
-                  <th>Status</th>
-                  <th className="text-right">Actions</th>
+                <tr className="bg-slate-50 dark:bg-slate-900/50">
+                  <th className="font-black text-[10px] uppercase tracking-widest text-slate-400">Tier Index</th>
+                  <th className="font-black text-[10px] uppercase tracking-widest text-slate-400">Institutional ID</th>
+                  <th className="font-black text-[10px] uppercase tracking-widest text-slate-400">Full Academic Name</th>
+                  <th className="font-black text-[10px] uppercase tracking-widest text-slate-400">Assigned Level</th>
+                  <th className="font-black text-[10px] uppercase tracking-widest text-slate-400">Guardian Intel</th>
+                  <th className="font-black text-[10px] uppercase tracking-widest text-slate-400">Lifecycle Status</th>
+                  <th className="text-right font-black text-[10px] uppercase tracking-widest text-slate-400 px-6">Direct Action</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {Array.isArray(students) && students.map((student: any, index: number) => (
-                  <tr key={student.id}>
-                    <td className="w-16 text-slate-400 font-medium">{index + 1}</td>
-                    <td className="font-mono text-xs">{student.admissionNumber || 'N/A'}</td>
-                    <td className="font-bold text-slate-900 dark:text-white">
-                      {student.lastName}, {student.firstName} {student.middleName}
+                  <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-all group">
+                    <td className="w-16 font-bold text-slate-300 text-xs italic">#{index + 1}</td>
+                    <td className="font-mono text-xs font-black text-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 rounded inline-block mt-4 ml-4">
+                      {student.admissionNumber || 'PENDING-ID'}
+                    </td>
+                    <td className="py-4">
+                      <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight">{student.lastName}, {student.firstName}</p>
+                      <p className="text-[10px] font-bold text-slate-400 italic">{student.gender} • DOB: {student.dateOfBirth || 'UNSET'}</p>
                     </td>
                     <td>
-                      <Badge variant="outline" className="bg-indigo-50 border-indigo-200 text-indigo-700">
+                      <Badge variant="outline" className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-black text-[10px]">
                         {student.class.name}
                       </Badge>
                     </td>
-                    <td>{student.gender}</td>
                     <td className="text-xs">
-                      {student.parentName || 'N/A'} <br/>
-                      <span className="text-slate-400">{student.parentContact || 'N/A'}</span>
+                      <p className="font-bold text-slate-700 dark:text-slate-300">{student.parentName || 'DATA MISSING'}</p>
+                      <p className="text-slate-400 tracking-tighter">{student.parentContact || 'NO PHONE'}</p>
                     </td>
                     <td>
-                      <Badge variant={student.status === 'Active' ? 'success' : 'default'} className={student.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : ''}>
+                      <Badge variant={student.status === 'Active' ? 'success' : 'default'} className="font-black text-[9px] tracking-widest h-5">
                         {student.status || 'Active'}
                       </Badge>
                     </td>
-                    <td className="text-right space-x-2">
-                      <Button variant="ghost" size="icon" onClick={() => openEditModal(student)} title="Edit">
-                        <Edit className="w-4 h-4 text-blue-600" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(student.id, `${student.firstName} ${student.lastName}`)} title="Delete">
-                        <Trash2 className="w-4 h-4 text-rose-500" />
-                      </Button>
+                    <td className="text-right px-6 space-x-1">
+                      {activeTab === 'trash' ? (
+                        <>
+                           <Button variant="ghost" size="icon" onClick={() => handleRestore(student.id)} title="Restore Student" className="hover:bg-emerald-50 text-emerald-600">
+                            <RotateCcw className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(student.id, `${student.firstName} ${student.lastName}`)} title="Erase Permanently" className="hover:bg-rose-50 text-rose-600 font-bold">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => openEditModal(student)} title="Modify Intel" className="group-hover:text-blue-600">
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(student.id, `${student.firstName} ${student.lastName}`)} title="Move to Trash" className="group-hover:text-rose-600">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}

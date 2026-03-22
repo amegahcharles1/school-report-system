@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
 
     const allowedClassIds = await getAllowedClassIds();
 
-    const where: Record<string, unknown> = {};
+    const includeDeleted = searchParams.get('includeDeleted') === 'true';
+    const where: Record<string, unknown> = {
+      isDeleted: includeDeleted ? true : false,
+    };
 
     if (classId) {
       if (allowedClassIds !== null && !allowedClassIds.includes(classId)) {
@@ -32,8 +35,8 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       where.OR = [
-        { firstName: { contains: search } },
-        { lastName: { contains: search } },
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
       ];
     }
 

@@ -191,10 +191,22 @@ export default function ReportCardsPage() {
             </div>
           </div>
         </div>
-      ) : reportData ? (
-        <div id="report-card" className="bg-white text-black p-10 md:p-14 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.1)] rounded-sm max-w-[210mm] mx-auto min-h-[297mm] print:shadow-none print:m-0 print:p-0 print:max-w-full font-serif relative">
+    ) : reportData ? (
+        <div id="report-card" className="bg-white text-black p-10 md:p-14 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.1)] rounded-sm max-w-[210mm] mx-auto min-h-[297mm] print:shadow-none print:m-0 print:p-0 print:max-w-full font-serif relative overflow-hidden">
           
-          {/* Header */}
+          {/* Professional Watermark */}
+          {reportData.school.logoUrl && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04] z-0 overflow-hidden select-none">
+              <img 
+                src={reportData.school.logoUrl} 
+                alt="" 
+                className="w-[85%] max-w-[550px] grayscale filter contrast-125"
+              />
+            </div>
+          )}
+
+          <div className="relative z-10">
+            {/* Header */}
           <div className="text-center border-b-[6px] border-indigo-900 pb-8 mb-10">
             <h1 className="text-4xl font-black uppercase text-indigo-900 tracking-widest leading-tight">
               {reportData.school.name}
@@ -367,7 +379,8 @@ export default function ReportCardsPage() {
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.5em] leading-relaxed max-w-2xl mx-auto">{reportData.footerMessage || reportData.school.name}</p>
           </div>
         </div>
-      ) : (
+      </div>
+    ) : (
         <div className="no-print mt-12 p-24 text-center flex flex-col items-center justify-center bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-100 dark:border-slate-800 animate-fade-in shadow-sm">
           <div className="h-20 w-20 bg-slate-50 dark:bg-slate-800 rounded-3xl flex items-center justify-center mb-6">
             <Layout className="w-10 h-10 text-slate-200" />

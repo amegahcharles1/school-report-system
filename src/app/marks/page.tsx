@@ -141,6 +141,7 @@ export default function MarksEntryPage() {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [expandedStudents, setExpandedStudents] = useState<string[]>([]);
   const [localMarks, setLocalMarks] = useState<MarksEntry[]>([]);
+  const [dirtyStudentIds, setDirtyStudentIds] = useState<Set<string>>(new Set());
   // Map of studentId → fieldName → error message
   const [fieldErrors, setFieldErrors] = useState<Record<string, Record<string, string>>>({});
 
@@ -229,6 +230,7 @@ export default function MarksEntryPage() {
       const data = await res.json();
       setLocalMarks(data);
       setFieldErrors({}); // clear errors on fresh fetch
+      setDirtyStudentIds(new Set());
       return data;
     },
     enabled: !!selectedClass && !!selectedTerm && !!selectedSubject
@@ -243,16 +245,23 @@ export default function MarksEntryPage() {
       );
       if (hasErrors) throw new Error('Fix validation errors before saving');
 
+      const changedMarks = localMarks.filter(m => dirtyStudentIds.has(m.studentId));
+      if (changedMarks.length === 0) {
+        toast.error('No changes detected to save');
+        return;
+      }
+
       const res = await fetch('/api/marks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subjectId: selectedSubject, termId: selectedTerm, marks: localMarks }),
+        body: JSON.stringify({ subjectId: selectedSubject, termId: selectedTerm, marks: changedMarks }),
       });
       if (!res.ok) throw new Error('Failed to save');
       return res.json();
     },
     onSuccess: () => {
       toast.success('Marks updated and synced!');
+      setDirtyStudentIds(new Set());
       queryClient.invalidateQueries({ queryKey: ['marks'] });
     },
     onError: (err: Error) => toast.error(err.message || 'Check your network and try again.')
@@ -261,6 +270,7 @@ export default function MarksEntryPage() {
   const handleMarkChange = useCallback((studentId: string, field: string, value: string) => {
     const numValue = value === '' ? 0 : parseFloat(value);
     setLocalMarks(prev => prev.map(m => m.studentId === studentId ? { ...m, [field]: isNaN(numValue) ? 0 : numValue } : m));
+    setDirtyStudentIds(prev => new Set(prev).add(studentId));
   }, []);
 
   const handleFieldError = useCallback((studentId: string, field: string, err: string | null) => {
