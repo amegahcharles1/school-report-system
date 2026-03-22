@@ -99,6 +99,7 @@ export default function SettingsPage() {
     queryKey: ['terms'],
     queryFn: async () => {
       const res = await fetch('/api/terms');
+      if (!res.ok) throw new Error('API failed');
       return res.json();
     }
   });
@@ -107,6 +108,7 @@ export default function SettingsPage() {
     queryKey: ['academic-years'],
     queryFn: async () => {
       const res = await fetch('/api/academic-years');
+      if (!res.ok) throw new Error('API failed');
       return res.json();
     }
   });
@@ -699,16 +701,16 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">System Architecture Index</h3>
                 <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 rounded-2xl">
-                  {years.map((y: any) => (
+                  {Array.isArray(years) && years.map((y: any) => (
                     <div key={y.id} className="p-5 bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800 rounded-2xl">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-black text-lg text-indigo-900 dark:text-indigo-400 font-mono">{y.name}</h4>
                         <div className="flex gap-2 text-xs font-bold text-slate-500">
-                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {(y.terms || []).length} Terms</span>
+                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {Array.isArray(y.terms) ? y.terms.length : 0} Terms</span>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {(y.terms || []).map((t: any) => (
+                        {Array.isArray(y.terms) && y.terms.map((t: any) => (
                           <div key={t.id} className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${settings.currentTermId === t.id ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500'}`}>
                             {t.name}
                             {settings.currentTermId === t.id && <span className="ml-2 bg-indigo-500 text-white px-1.5 py-0.5 rounded text-[9px] uppercase tracking-widest">Active</span>}
@@ -718,7 +720,7 @@ export default function SettingsPage() {
                       <p className="text-[10px] text-slate-400 mt-4 italic font-medium tracking-tight">To switch the globally active term and year, select it from the dropdown in "1. School Profile".</p>
                     </div>
                   ))}
-                  {years.length === 0 && (
+                  {(!Array.isArray(years) || years.length === 0) && (
                     <div className="p-10 text-center text-slate-400 font-bold border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">No Academic Calendars initialized.</div>
                   )}
                 </div>
