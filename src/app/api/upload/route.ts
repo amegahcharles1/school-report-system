@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
@@ -30,18 +27,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid file type. Only standard images are allowed.' }, { status: 400 });
     }
 
-    const uniqueId = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 9);
-    const filename = `logo-${uniqueId}.${extension}`;
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
-    const filePath = join(uploadDir, filename);
+    const mimeType = file.type || 'image/png';
+    const base64String = `data:${mimeType};base64,${buffer.toString('base64')}`;
 
-    // Ensure the uploads directory exists
-    await mkdir(uploadDir, { recursive: true });
-
-    await writeFile(filePath, buffer);
-
-    // Return the URL
-    return NextResponse.json({ url: `/uploads/${filename}` });
+    // Return the base64 string as the URL
+    // This bypasses Vercel/AWS Lambda read-only file systems 
+    // and saves the image directly into PostgreSQL as a text string!
+    return NextResponse.json({ url: base64String });
   } catch (error: any) {
     console.error('File upload error:', error);
     return NextResponse.json({ error: `Upload failed: ${error?.message || 'Unknown server error'}` }, { status: 500 });
