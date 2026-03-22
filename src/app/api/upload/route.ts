@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
-import crypto from 'crypto';
+
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid file type. Only standard images are allowed.' }, { status: 400 });
     }
 
-    const uniqueId = crypto.randomUUID();
+    const uniqueId = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 9);
     const filename = `logo-${uniqueId}.${extension}`;
     const uploadDir = join(process.cwd(), 'public', 'uploads');
     const filePath = join(uploadDir, filename);
@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
 
     // Return the URL
     return NextResponse.json({ url: `/uploads/${filename}` });
-  } catch (error) {
+  } catch (error: any) {
     console.error('File upload error:', error);
-    return NextResponse.json({ error: 'Upload failed internally' }, { status: 500 });
+    return NextResponse.json({ error: `Upload failed: ${error?.message || 'Unknown server error'}` }, { status: 500 });
   }
 }
