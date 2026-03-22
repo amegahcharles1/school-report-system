@@ -16,7 +16,9 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
 
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('school'); // school, report, grading, marks, layout
+  const [activeTab, setActiveTab] = useState('school');
+  const [creatingYear, setCreatingYear] = useState(false);
+  const [newYearName, setNewYearName] = useState('');
 
   const [settings, setSettings] = useState<any>({
     schoolName: '',
@@ -118,8 +120,6 @@ export default function SettingsPage() {
       return res.json();
     }
   });
-
-  const [newYearName, setNewYearName] = useState('');
 
   const handleSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -239,9 +239,7 @@ export default function SettingsPage() {
     );
   }
 
-  const selectedTermObj = terms.find((t: any) => t.id === settings.currentTermId);
-
-  const [creatingYear, setCreatingYear] = useState(false);
+  const selectedTermObj = Array.isArray(terms) ? terms.find((t: any) => t.id === settings.currentTermId) : undefined;
 
   const handleCreateYear = async () => {
     if (!newYearName.trim()) {

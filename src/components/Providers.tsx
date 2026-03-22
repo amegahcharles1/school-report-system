@@ -1,7 +1,6 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
-import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { SettingsProvider } from '@/contexts/SettingsContext';
@@ -22,7 +21,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <SessionProvider>
         <SettingsProvider>
           {children}
-          <Toaster position="top-right" />
         </SettingsProvider>
       </SessionProvider>
     </QueryClientProvider>
