@@ -26,7 +26,7 @@ export default function ClassesPage() {
     queryKey: ['classes'],
     queryFn: async () => {
       const res = await fetch('/api/classes');
-      if (!res.ok) throw new Error('Failed to fetch classes');
+      if (!res.ok) throw new Error('API failed');
       return res.json();
     },
     enabled: isAdmin
@@ -38,7 +38,7 @@ export default function ClassesPage() {
     queryKey: ['staff'],
     queryFn: async () => {
       const res = await fetch('/api/staff');
-      if (!res.ok) throw new Error('Failed to fetch staff');
+      if (!res.ok) throw new Error('API failed');
       return res.json();
     },
     enabled: isAdmin
