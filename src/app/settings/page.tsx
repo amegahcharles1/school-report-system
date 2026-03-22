@@ -78,20 +78,26 @@ export default function SettingsPage() {
   const { isLoading: loadingSettings } = useQuery({
     queryKey: ['settings'],
     queryFn: async () => {
-      const res = await fetch('/api/settings');
-      const data = await res.json();
-      if (!data.error) setSettings((prev: any) => ({ ...prev, ...data }));
-      return data;
+      try {
+        const res = await fetch('/api/settings');
+        if (!res.ok) return {};
+        const data = await res.json();
+        if (data && !data.error) setSettings((prev: any) => ({ ...prev, ...data }));
+        return data;
+      } catch { return {}; }
     }
   });
 
   const { isLoading: loadingGrades } = useQuery({
     queryKey: ['grades'],
     queryFn: async () => {
-      const res = await fetch('/api/grades');
-      const data = await res.json();
-      if (!data.error) setGrades(data);
-      return data;
+      try {
+        const res = await fetch('/api/grades');
+        if (!res.ok) return [];
+        const data = await res.json();
+        if (Array.isArray(data)) setGrades(data);
+        return data;
+      } catch { return []; }
     }
   });
 

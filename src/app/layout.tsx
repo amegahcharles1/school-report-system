@@ -4,6 +4,7 @@ import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import { Toaster } from "react-hot-toast";
 import Providers from "@/components/Providers";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,17 +22,22 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} bg-gray-50 dark:bg-gray-950`}>
         <Providers>
-          <div className="flex h-screen overflow-hidden print:h-auto print:overflow-visible">
-            <Sidebar />
-            <div className="flex-1 flex flex-col transition-all duration-300 relative h-full overflow-hidden print:h-auto print:overflow-visible">
-              <main className="flex-1 overflow-y-auto print:overflow-visible w-full h-full print:h-auto relative px-4 py-6 md:px-6 md:py-8 pt-[72px] md:pt-8 pb-24 md:pb-8 print:p-0 print:m-0">
-                {children}
-              </main>
+          <ErrorBoundary>
+            <div className="flex h-screen overflow-hidden print:h-auto print:overflow-visible">
+              <Sidebar />
+              <div className="flex-1 flex flex-col transition-all duration-300 relative h-full overflow-hidden print:h-auto print:overflow-visible">
+                <main className="flex-1 overflow-y-auto print:overflow-visible w-full h-full print:h-auto relative px-4 py-6 md:px-6 md:py-8 pt-[72px] md:pt-8 pb-24 md:pb-8 print:p-0 print:m-0">
+                  <ErrorBoundary>
+                    {children}
+                  </ErrorBoundary>
+                </main>
+              </div>
             </div>
-          </div>
-          <Toaster position="top-right" />
+            <Toaster position="top-right" />
+          </ErrorBoundary>
         </Providers>
       </body>
     </html>
   );
 }
+
