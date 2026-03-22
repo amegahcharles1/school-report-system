@@ -1,11 +1,20 @@
 import { withAuth } from "next-auth/middleware";
 
 export default withAuth(
-  // `withAuth` augments your `Request` with the user's token.
   function middleware(req) {
-    // We can add role-based route protection here later if needed,
-    // e.g. restricting `/settings` to ADMIN only.
-    // For now, protecting the route is enough.
+    const token = req.nextauth.token;
+    const url = req.nextUrl.pathname;
+    
+    // Admin only routes
+    const adminRoutes = ['/settings', '/staff', '/subjects', '/classes'];
+    
+    // Check if the current path starts with any admin route
+    const isAdminRoute = adminRoutes.some(route => url.startsWith(route));
+    
+    if (isAdminRoute && token?.role !== 'ADMIN') {
+      // Redirect TEACHERs to the dashboard if they try to access admin pages
+      return Response.redirect(new URL('/', req.url));
+    }
   },
   {
     callbacks: {

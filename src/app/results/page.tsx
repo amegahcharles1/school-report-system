@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BarChart3, Download, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -12,15 +12,11 @@ export default function ResultsPage() {
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
 
-  // Static Queries (once)
   const { data: classes = [] } = useQuery({
     queryKey: ['classes'],
     queryFn: async () => {
       const res = await fetch('/api/classes');
       return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.length > 0 && !selectedClass) setSelectedClass(data[0].id);
     }
   });
 
@@ -29,14 +25,19 @@ export default function ResultsPage() {
     queryFn: async () => {
       const res = await fetch('/api/terms');
       return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.length > 0 && !selectedTerm) {
-        const current = data.find((t: any) => t.isCurrent);
-        setSelectedTerm(current ? current.id : data[0].id);
-      }
     }
   });
+
+  useEffect(() => {
+    if (classes.length > 0 && !selectedClass) setSelectedClass(classes[0].id);
+  }, [classes, selectedClass]);
+
+  useEffect(() => {
+    if (terms.length > 0 && !selectedTerm) {
+      const current = terms.find((t: any) => t.isCurrent);
+      setSelectedTerm(current ? current.id : terms[0].id);
+    }
+  }, [terms, selectedTerm]);
 
   const { data: settings } = useQuery({
     queryKey: ['settings'],
@@ -146,9 +147,20 @@ export default function ResultsPage() {
 
       <div className="premium-card">
         {loading ? (
-          <div className="p-20 flex flex-col items-center justify-center text-gray-500">
-            <Loader2 className="w-10 h-10 animate-spin mb-4 text-blue-600" />
-            <p className="animate-pulse font-medium">Calculating broadsheet ranking...</p>
+          <div className="p-8 animate-pulse">
+            <div className="h-10 w-full bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center px-4 mb-4 gap-4">
+              <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded-md"></div>
+              <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded-md"></div>
+            </div>
+            <div className="space-y-3">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="h-12 w-48 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
+                  <div className="h-12 flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-lg"></div>
+                  <div className="h-12 w-20 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : results.length === 0 ? (
           <div className="p-20 text-center text-gray-500">

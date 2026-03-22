@@ -1,11 +1,9 @@
 // API: Students CRUD
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getAllowedClassIds } from '@/lib/access';
+import { canAccessClass, getAllowedClassIds } from '@/lib/access';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-
-const CHARLES_EMAIL = 'charles@school.com';
 
 // GET all students (with optional class/search filters)
 export async function GET(request: NextRequest) {
@@ -39,9 +37,8 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Admin and Charles see book order; all other teachers see A-Z
-    const useBookOrder = role === 'ADMIN' || email === CHARLES_EMAIL;
-    const orderBy = useBookOrder
+    // Admin sees displayOrder first; all teachers see A-Z
+    const orderBy = role === 'ADMIN'
       ? [{ displayOrder: 'asc' as const }, { lastName: 'asc' as const }, { firstName: 'asc' as const }]
       : [{ lastName: 'asc' as const }, { firstName: 'asc' as const }];
 
@@ -64,10 +61,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { firstName, lastName, middleName, gender, dateOfBirth, classId } = body;
+    const { firstName, lastName, middleName, gender, dateOfBirth, classId, admissionNumber, parentName, parentContact, address, status } = body;
 
     if (!firstName || !lastName || !classId) {
       return NextResponse.json({ error: 'First name, last name, and class are required' }, { status: 400 });
+    }
+
+    if (!(await canAccessClass(classId))) {
+      return NextResponse.json({ error: 'Unauthorized to add students to this class' }, { status: 403 });
     }
 
     // Check for duplicate
@@ -85,6 +86,11 @@ export async function POST(request: NextRequest) {
         middleName: middleName || '',
         gender: gender || 'Male',
         dateOfBirth: dateOfBirth || '',
+        admissionNumber: admissionNumber || '',
+        parentName: parentName || '',
+        parentContact: parentContact || '',
+        address: address || '',
+        status: status || 'Active',
         classId,
       },
       include: { class: true },

@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateCAContribution, calculateExamContribution, getGradeAndRemark, calculatePositions, getPositionSuffix } from '@/lib/calculations';
+import { canAccessClass } from '@/lib/access';
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,6 +13,10 @@ export async function GET(request: NextRequest) {
 
     if (!classId || !termId) {
       return NextResponse.json({ error: 'classId and termId are required' }, { status: 400 });
+    }
+
+    if (!(await canAccessClass(classId))) {
+      return NextResponse.json({ error: 'Unauthorized class access' }, { status: 403 });
     }
 
     const gradeConfigs = await prisma.gradeConfig.findMany();
@@ -32,22 +38,28 @@ export async function GET(request: NextRequest) {
     // Calculate results for each student
     const studentResults = students.map((student) => {
       const subjectResults = student.assessments.map((a) => {
-        const caSubtotal = a.test1 + a.assignment1 + a.test2 + a.assignment2;
+        const test1 = a.test1 ?? 0;
+        const assignment1 = a.assignment1 ?? 0;
+        const test2 = a.test2 ?? 0;
+        const assignment2 = a.assignment2 ?? 0;
+        const examScore = a.examScore ?? 0;
+
+        const caSubtotal = test1 + assignment1 + test2 + assignment2;
         const caContribution = calculateCAContribution(caSubtotal, caWeight);
-        const examContribution = calculateExamContribution(a.examScore, examWeight);
+        const examContribution = calculateExamContribution(examScore, examWeight);
         const finalTotal = Math.round((caContribution + examContribution) * 100) / 100;
         const { grade, remark } = getGradeAndRemark(finalTotal, gradeConfigs);
 
         return {
           subjectId: a.subjectId,
           subjectName: a.subject.name,
-          test1: a.test1,
-          assignment1: a.assignment1,
-          test2: a.test2,
-          assignment2: a.assignment2,
+          test1,
+          assignment1,
+          test2,
+          assignment2,
           caSubtotal,
           caContribution,
-          examScore: a.examScore,
+          examScore,
           examContribution,
           finalTotal,
           grade,

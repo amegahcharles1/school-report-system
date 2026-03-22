@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Printer, Download, Search, Layout, ChevronLeft, ChevronRight, Loader2, BookOpen, GraduationCap, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
@@ -20,9 +20,7 @@ export default function ReportCardsPage() {
     queryKey: ['classes'],
     queryFn: async () => {
       const res = await fetch('/api/classes');
-      const data = await res.json();
-      if (data.length > 0 && !selectedClass) setSelectedClass(data[0].id);
-      return data;
+      return res.json();
     }
   });
 
@@ -31,11 +29,7 @@ export default function ReportCardsPage() {
     queryKey: ['terms'],
     queryFn: async () => {
       const res = await fetch('/api/terms');
-      const data = await res.json();
-      const activeTerm = data.find((t: any) => t.isCurrent);
-      if (activeTerm && !selectedTerm) setSelectedTerm(activeTerm.id);
-      else if (data.length > 0 && !selectedTerm) setSelectedTerm(data[0].id);
-      return data;
+      return res.json();
     }
   });
 
@@ -45,13 +39,26 @@ export default function ReportCardsPage() {
     queryFn: async () => {
       if (!selectedClass) return [];
       const res = await fetch(`/api/students?classId=${selectedClass}`);
-      const data = await res.json();
-      if (data.length > 0) setSelectedStudent(data[0].id);
-      else setSelectedStudent('');
-      return data;
+      return res.json();
     },
     enabled: !!selectedClass
   });
+
+  useEffect(() => {
+    if (classes.length > 0 && !selectedClass) setSelectedClass(classes[0].id);
+  }, [classes, selectedClass]);
+
+  useEffect(() => {
+    if (terms.length > 0 && !selectedTerm) {
+      const activeTerm = terms.find((t: any) => t.isCurrent);
+      setSelectedTerm(activeTerm ? activeTerm.id : terms[0].id);
+    }
+  }, [terms, selectedTerm]);
+
+  useEffect(() => {
+    if (students.length > 0 && !selectedStudent) setSelectedStudent(students[0].id);
+    else if (students.length === 0 && selectedStudent) setSelectedStudent('');
+  }, [students, selectedStudent]);
 
   // 4. Fetch Report Data (Dependent on Student and Term)
   const { data: reportData, isLoading: isLoadingReport, isFetching: isFetchingReport } = useQuery({
@@ -158,12 +165,25 @@ export default function ReportCardsPage() {
       </div>
 
       {loading ? (
-        <div className="no-print mt-20 p-24 text-center flex flex-col items-center justify-center">
-          <div className="relative">
-            <div className="h-24 w-24 border-4 border-indigo-600/10 border-t-indigo-600 rounded-full animate-spin"></div>
-            <FileText className="absolute inset-0 m-auto h-8 w-8 text-indigo-600 animate-pulse" />
+        <div className="no-print mt-20 text-center flex flex-col items-center justify-center">
+          <div className="bg-white text-black p-10 md:p-14 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.1)] rounded-sm max-w-[210mm] w-full mx-auto animate-pulse flex flex-col gap-6">
+            <div className="h-16 bg-slate-100 rounded-md w-3/4 mx-auto mb-4"></div>
+            <div className="h-6 bg-slate-100 rounded-md w-1/2 mx-auto mb-10"></div>
+            
+            <div className="grid grid-cols-2 gap-x-12 gap-y-6 mb-10 py-8 px-10 bg-slate-50 border-x-2 border-slate-200 rounded-sm">
+              <div className="h-5 bg-slate-200 rounded w-full"></div>
+              <div className="h-5 bg-slate-200 rounded w-full"></div>
+              <div className="h-5 bg-slate-200 rounded w-full"></div>
+              <div className="h-5 bg-slate-200 rounded w-full"></div>
+            </div>
+            
+            <div className="h-64 bg-slate-50 rounded-md w-full mb-10"></div>
+            
+            <div className="flex gap-8">
+              <div className="flex-1 h-32 bg-slate-100 rounded-md"></div>
+              <div className="flex-1 h-32 bg-slate-100 rounded-md"></div>
+            </div>
           </div>
-          <p className="mt-8 text-slate-500 font-black uppercase tracking-[0.3em] text-xs">Compiling Secure Assessment...</p>
         </div>
       ) : reportData ? (
         <div id="report-card" className="bg-white text-black p-10 md:p-14 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.1)] rounded-sm max-w-[210mm] mx-auto min-h-[297mm] print:shadow-none print:m-0 print:p-0 print:max-w-full font-serif relative">
@@ -206,6 +226,19 @@ export default function ReportCardsPage() {
               <span className="font-black w-36 uppercase text-[10px] text-indigo-900 flex items-center">Academic Term:</span> 
               <span className="font-bold text-lg flex-1">{reportData.term}</span>
             </div>
+            
+            {reportData.summary.showAttendance && (
+               <>
+                <div className="flex border-b border-slate-300 pb-1">
+                  <span className="font-black w-36 uppercase text-[10px] text-indigo-900 flex items-center">Days Present:</span> 
+                  <span className="font-bold text-lg flex-1 text-emerald-700">{reportData.attendance.daysPresent} <span className="text-xs font-normal text-slate-500">out of {reportData.attendance.totalDays}</span></span>
+                </div>
+                <div className="flex border-b border-slate-300 pb-1">
+                  <span className="font-black w-36 uppercase text-[10px] text-indigo-900 flex items-center">Days Absent:</span> 
+                  <span className="font-bold text-lg flex-1 text-rose-700">{reportData.attendance.daysAbsent}</span>
+                </div>
+               </>
+            )}
           </div>
 
           {/* Marks Table */}
@@ -318,8 +351,14 @@ export default function ReportCardsPage() {
           </div>
 
           {/* Footer Branding */}
-          <div className="mt-16 text-center border-t border-slate-100 pt-8 no-print">
-            <p className="text-[10px] text-slate-300 font-bold uppercase tracking-[0.5em]">{reportData.footerMessage || reportData.school.name}</p>
+          {reportData.summary.showNextTermDate && reportData.summary.nextTermDate && (
+             <div className="mt-6 p-4 border-2 border-slate-200 bg-slate-50 text-center rounded-sm font-sans font-bold text-indigo-900">
+               <span className="text-[11px] uppercase text-slate-500 mr-2 tracking-widest">Next Term Begins:</span> {reportData.summary.nextTermDate}
+             </div>
+          )}
+          
+          <div className="mt-8 text-center border-t border-slate-100 pt-8 no-print">
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.5em] leading-relaxed max-w-2xl mx-auto">{reportData.footerMessage || reportData.school.name}</p>
           </div>
         </div>
       ) : (

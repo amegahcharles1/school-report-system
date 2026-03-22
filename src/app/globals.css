@@ -61,6 +61,10 @@ a, button, input, select, textarea {
 
 /* Print styles */
 @media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
   body {
     background: white !important;
     color: black !important;

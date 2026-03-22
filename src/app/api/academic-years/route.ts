@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/access';
 
 export async function GET() {
   try {
@@ -20,6 +21,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAdmin();
     const body = await request.json();
     const { name, isCurrent } = body;
 
@@ -48,6 +50,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    await requireAdmin();
     const body = await request.json();
     const { id, name, isCurrent } = body;
 
@@ -77,6 +80,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    await requireAdmin();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

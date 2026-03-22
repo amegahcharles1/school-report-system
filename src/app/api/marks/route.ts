@@ -3,6 +3,8 @@ import type { AssessmentAudit, Student } from '@prisma/client';
 import type { MarksEntry } from '@/types';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { canAccessClass, getAllowedSubjectIds, getSessionUser } from '@/lib/access';
+
 
 // GET marks for a class/subject/term
 export async function GET(request: NextRequest) {
@@ -15,6 +17,16 @@ export async function GET(request: NextRequest) {
     if (!classId || !subjectId || !termId) {
       return NextResponse.json({ error: 'classId, subjectId, and termId are required' }, { status: 400 });
     }
+
+    if (!(await canAccessClass(classId))) {
+      return NextResponse.json({ error: 'Unauthorized class access' }, { status: 403 });
+    }
+
+    const allowedSubjects = await getAllowedSubjectIds(classId);
+    if (allowedSubjects !== null && !allowedSubjects.includes(subjectId)) {
+      return NextResponse.json({ error: 'Unauthorized subject access' }, { status: 403 });
+    }
+
 
     // Get students in the class
     const students = await prisma.student.findMany({
@@ -59,23 +71,40 @@ export async function GET(request: NextRequest) {
 }
 
 // POST/PUT save marks (upsert)
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const user = await getSessionUser();
+    if (!user || !user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const userId = session.user.id;
+    const userId = user.id;
     const body = await request.json();
     const { subjectId, termId, marks } = body;
 
     if (!subjectId || !termId || !marks?.length) {
       return NextResponse.json({ error: 'subjectId, termId, and marks are required' }, { status: 400 });
     }
+
+    // Security check: We need to verify the classId of the students being updated, 
+    // and verify the teacher has access to that class and subject.
+    const sampleStudentId = marks[0].studentId;
+    const studentExists = await prisma.student.findUnique({ where: { id: sampleStudentId }, select: { classId: true } });
+    if (!studentExists) {
+        return NextResponse.json({ error: 'Invalid students data' }, { status: 400 });
+    }
+
+    const classId = studentExists.classId;
+
+    if (!(await canAccessClass(classId))) {
+      return NextResponse.json({ error: 'Unauthorized class access' }, { status: 403 });
+    }
+
+    const allowedSubjects = await getAllowedSubjectIds(classId);
+    if (allowedSubjects !== null && !allowedSubjects.includes(subjectId)) {
+      return NextResponse.json({ error: 'Unauthorized subject access' }, { status: 403 });
+    }
+
 
     const results = [];
     
@@ -132,9 +161,9 @@ export async function POST(request: NextRequest) {
           reason: string;
         }> = [];
         
-        if (existing.test1 !== newTest1) auditCreates.push({ field: 'test1', oldValue: existing.test1, newValue: newTest1, modifiedById: userId, reason: 'Teacher updated score' });
-        if (existing.assignment1 !== newAssignment1) auditCreates.push({ field: 'assignment1', oldValue: existing.assignment1, newValue: newAssignment1, modifiedById: userId, reason: 'Teacher updated score' });
-        if (existing.examScore !== newExamScore) auditCreates.push({ field: 'examScore', oldValue: existing.examScore, newValue: newExamScore, modifiedById: userId, reason: 'Teacher updated score' });
+        if (existing.test1 !== newTest1) auditCreates.push({ field: 'test1', oldValue: existing.test1 ?? undefined, newValue: newTest1, modifiedById: userId, reason: 'Teacher updated score' });
+        if (existing.assignment1 !== newAssignment1) auditCreates.push({ field: 'assignment1', oldValue: existing.assignment1 ?? undefined, newValue: newAssignment1, modifiedById: userId, reason: 'Teacher updated score' });
+        if (existing.examScore !== newExamScore) auditCreates.push({ field: 'examScore', oldValue: existing.examScore ?? undefined, newValue: newExamScore, modifiedById: userId, reason: 'Teacher updated score' });
 
         if (auditCreates.length > 0) {
           const updatedObj = await prisma.assessment.update({

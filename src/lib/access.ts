@@ -1,28 +1,91 @@
-// Access control utility - determines which classes a user can access
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-// Charles is the only teacher with multi-class access (JHS 1, 2, 3)
-const CHARLES_EMAIL = 'charles@school.com';
+export type UserSession = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+};
 
-export async function getAllowedClassIds(): Promise<string[] | null> {
+export async function getSessionUser(): Promise<UserSession | null> {
   const session = await getServerSession(authOptions);
-  const role = (session?.user as any)?.role;
-  const email = (session?.user as any)?.email;
+  return session?.user as UserSession | null;
+}
 
-  // Admins see everything - return null to mean "no filter"
-  if (role === 'ADMIN') return null;
+/**
+ * Throws an error if the user is not an ADMIN. 
+ * Use in API routes wrapped in try-catch.
+ */
+export async function requireAdmin() {
+  const user = await getSessionUser();
+  if (!user || user.role !== 'ADMIN') {
+    throw new Error('UNAUTHORIZED_ADMIN');
+  }
+  return user;
+}
 
-  // Get all classes
-  const allClasses = await prisma.class.findMany({ orderBy: { name: 'asc' } });
+/**
+ * Returns null if ADMIN (has access to all classes).
+ * Returns array of class IDs if TEACHER (has access to assigned classes).
+ * Returns empty array if not logged in.
+ */
+export async function getAllowedClassIds(): Promise<string[] | null> {
+  const user = await getSessionUser();
+  if (!user) return [];
 
-  // Charles can see all 3 classes
-  if (email === CHARLES_EMAIL) {
-    return allClasses.map((c: any) => c.id);
+  if (user.role === 'ADMIN') return null; // Admin sees everything
+
+  // Teacher sees classes they are the classTeacher for
+  const managedClasses = await prisma.class.findMany({
+    where: { classTeacherId: user.id },
+    select: { id: true }
+  });
+
+  // Teacher sees classes they have assignments for
+  const assignments = await prisma.teacherAssignment.findMany({
+    where: { userId: user.id },
+    select: { classId: true }
+  });
+
+  const classIds = new Set([
+    ...managedClasses.map(c => c.id),
+    ...assignments.map(a => a.classId)
+  ]);
+
+  return Array.from(classIds);
+}
+
+/**
+ * Returns null if ADMIN (has access to all subjects).
+ * Returns array of subject IDs if TEACHER (filtered by optional classId).
+ */
+export async function getAllowedSubjectIds(classId?: string): Promise<string[] | null> {
+  const user = await getSessionUser();
+  if (!user) return [];
+
+  if (user.role === 'ADMIN') return null; // Admin sees everything
+
+  const where: any = { userId: user.id };
+  if (classId) {
+    where.classId = classId;
   }
 
-  // All other teachers only see JHS 1
-  const jhs1 = allClasses.find((c: any) => c.name === 'JHS 1');
-  return jhs1 ? [jhs1.id] : [];
+  const assignments = await prisma.teacherAssignment.findMany({
+    where,
+    select: { subjectId: true }
+  });
+
+  const subjectIds = new Set(assignments.map(a => a.subjectId));
+  return Array.from(subjectIds);
+}
+
+/**
+ * Checks if a teacher can access/modify a specific student's marks
+ */
+export async function canAccessClass(classId: string): Promise<boolean> {
+  const allowed = await getAllowedClassIds();
+  if (allowed === null) return true; // Admin
+  return allowed.includes(classId);
 }

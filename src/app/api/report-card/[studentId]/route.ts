@@ -8,6 +8,8 @@ import {
   getPositionSuffix, 
   generateAutoRemark 
 } from '@/lib/calculations';
+import { canAccessClass } from '@/lib/access';
+
 
 export async function GET(
   request: NextRequest,
@@ -27,8 +29,13 @@ export async function GET(
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
+    if (!(await canAccessClass(student.classId))) {
+      return NextResponse.json({ error: 'Unauthorized class access' }, { status: 403 });
+    }
+
+
     // Get settings
-    const settings = await prisma.schoolSettings.findUnique({ where: { id: 'default' } });
+    const settings: any = await prisma.schoolSettings.findUnique({ where: { id: 'default' } });
     const actualTermId = termId || settings?.currentTermId;
 
     if (!actualTermId) {
@@ -64,23 +71,29 @@ export async function GET(
 
     // Calculate subject results using dynamic weights
     const subjectResults = assessments.map((a) => {
-      const caSubtotal = a.test1 + a.assignment1 + a.test2 + a.assignment2;
+      const test1 = a.test1 ?? 0;
+      const assignment1 = a.assignment1 ?? 0;
+      const test2 = a.test2 ?? 0;
+      const assignment2 = a.assignment2 ?? 0;
+      const examScore = a.examScore ?? 0;
+
+      const caSubtotal = test1 + assignment1 + test2 + assignment2;
       const caContribution = Math.round(caSubtotal * (caWeight / 100) * 100) / 100;
-      const examContribution = Math.round(a.examScore * (examWeight / 100) * 100) / 100;
+      const examContribution = Math.round(examScore * (examWeight / 100) * 100) / 100;
       const finalTotal = Math.round((caContribution + examContribution) * 100) / 100;
       const { grade, remark } = getGradeAndRemark(finalTotal, gradeConfigs);
 
       return {
         subjectId: a.subjectId,
         subjectName: a.subject.name,
-        test1: a.test1,
-        assignment1: a.assignment1,
-        test2: a.test2,
-        assignment2: a.assignment2,
+        test1,
+        assignment1,
+        test2,
+        assignment2,
         caSubtotal,
         caWeight,
         caContribution,
-        examScore: a.examScore,
+        examScore,
         examWeight,
         examContribution,
         finalTotal,
@@ -102,7 +115,7 @@ export async function GET(
 
     const studentAverages = allStudents.map((s) => {
       const totals = s.assessments.map((a) =>
-        calculateFinalTotal(a.test1, a.assignment1, a.test2, a.assignment2, a.examScore, caWeight, examWeight)
+        calculateFinalTotal(a.test1 ?? 0, a.assignment1 ?? 0, a.test2 ?? 0, a.assignment2 ?? 0, a.examScore ?? 0, caWeight, examWeight)
       );
       const avg = totals.length > 0 ? totals.reduce((sum, t) => sum + t, 0) / totals.length : 0;
       return { id: s.id, total: Math.round(avg * 100) / 100 };
@@ -116,8 +129,8 @@ export async function GET(
     const teacherRemarks = remarkTemplates.filter((r) => r.type === 'teacher');
     const headteacherRemarks = remarkTemplates.filter((r) => r.type === 'headteacher');
 
-    let teacherRemark = generateAutoRemark(average);
-    let headteacherRemark = '';
+    let teacherRemark = settings?.teacherRemark || generateAutoRemark(average);
+    let headteacherRemark = settings?.headteacherRemark || 'Assessed and validated.';
 
     for (const tmpl of teacherRemarks) {
       if (average >= tmpl.minAvg && average <= tmpl.maxAvg) {
@@ -155,6 +168,9 @@ export async function GET(
       summary: {
         showPositions: settings?.showPositions ?? true,
         showAverages: settings?.showAverages ?? true,
+        showAttendance: settings?.showAttendance ?? true,
+        showNextTermDate: settings?.showNextTermDate ?? true,
+        nextTermDate: settings?.nextTermDate ?? '',
         totalMarks: Math.round(totalMarks * 100) / 100,
         average,
         position,
@@ -202,7 +218,7 @@ export async function GET(
         teacher: teacherRemark,
         headteacher: headteacherRemark,
       },
-      footerMessage: settings?.reportCardMessage ?? '',
+      footerMessage: settings?.reportFooterText ?? '',
     };
 
     return NextResponse.json(reportCard);

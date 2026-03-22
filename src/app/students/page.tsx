@@ -16,13 +16,17 @@ export default function StudentsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Form state
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [gender, setGender] = useState('Male');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [classId, setClassId] = useState('');
+  const [admissionNumber, setAdmissionNumber] = useState('');
+  const [parentName, setParentName] = useState('');
+  const [parentContact, setParentContact] = useState('');
+  const [address, setAddress] = useState('');
+  const [status, setStatus] = useState('Active');
 
   // Queries
   const { data: students = [], isLoading: isLoadingStudents } = useQuery({
@@ -94,6 +98,11 @@ export default function StudentsPage() {
     setMiddleName('');
     setGender('Male');
     setDateOfBirth('');
+    setAdmissionNumber('');
+    setParentName('');
+    setParentContact('');
+    setAddress('');
+    setStatus('Active');
     setClassId(classes[0]?.id || '');
     setIsModalOpen(true);
   };
@@ -105,6 +114,11 @@ export default function StudentsPage() {
     setMiddleName(student.middleName);
     setGender(student.gender);
     setDateOfBirth(student.dateOfBirth);
+    setAdmissionNumber(student.admissionNumber || '');
+    setParentName(student.parentName || '');
+    setParentContact(student.parentContact || '');
+    setAddress(student.address || '');
+    setStatus(student.status || 'Active');
     setClassId(student.classId);
     setIsModalOpen(true);
   };
@@ -115,7 +129,7 @@ export default function StudentsPage() {
       toast.error('Please fill required fields');
       return;
     }
-    studentMutation.mutate({ firstName, lastName, middleName, gender, dateOfBirth, classId });
+    studentMutation.mutate({ firstName, lastName, middleName, gender, dateOfBirth, classId, admissionNumber, parentName, parentContact, address, status });
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -184,10 +198,12 @@ export default function StudentsPage() {
               <thead>
                 <tr>
                   <th>No.</th>
+                  <th>ID / Admin No</th>
                   <th>Student Name</th>
                   <th>Class</th>
                   <th>Gender</th>
-                  <th>Date of Birth</th>
+                  <th>Parent Info</th>
+                  <th>Status</th>
                   <th className="text-right">Actions</th>
                 </tr>
               </thead>
@@ -195,16 +211,25 @@ export default function StudentsPage() {
                 {students.map((student: any, index: number) => (
                   <tr key={student.id}>
                     <td className="w-16 text-slate-400 font-medium">{index + 1}</td>
+                    <td className="font-mono text-xs">{student.admissionNumber || 'N/A'}</td>
                     <td className="font-bold text-slate-900 dark:text-white">
                       {student.lastName}, {student.firstName} {student.middleName}
                     </td>
                     <td>
-                      <Badge variant="success">
+                      <Badge variant="outline" className="bg-indigo-50 border-indigo-200 text-indigo-700">
                         {student.class.name}
                       </Badge>
                     </td>
                     <td>{student.gender}</td>
-                    <td className="text-slate-500 dark:text-slate-400">{student.dateOfBirth || 'N/A'}</td>
+                    <td className="text-xs">
+                      {student.parentName || 'N/A'} <br/>
+                      <span className="text-slate-400">{student.parentContact || 'N/A'}</span>
+                    </td>
+                    <td>
+                      <Badge variant={student.status === 'Active' ? 'success' : 'default'} className={student.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : ''}>
+                        {student.status || 'Active'}
+                      </Badge>
+                    </td>
                     <td className="text-right space-x-2">
                       <Button variant="ghost" size="icon" onClick={() => openEditModal(student)} title="Edit">
                         <Edit className="w-4 h-4 text-blue-600" />
@@ -254,6 +279,34 @@ export default function StudentsPage() {
             <div className="space-y-2">
               <label className="text-xs font-black uppercase tracking-widest text-slate-400">Date of Birth</label>
               <Input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-4 border-t border-slate-100 dark:border-slate-800 mt-2">
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-widest text-slate-400">Admission Number</label>
+              <Input value={admissionNumber} onChange={e => setAdmissionNumber(e.target.value)} placeholder="e.g. STU-2025-001" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-widest text-slate-400">Status</label>
+               <select value={status} onChange={e => setStatus(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50 outline-none focus:ring-2 focus:ring-slate-900/10 transition-all text-sm">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Graduated">Graduated</option>
+                <option value="Suspended">Suspended</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-widest text-slate-400">Parent/Guardian Name</label>
+              <Input value={parentName} onChange={e => setParentName(e.target.value)} placeholder="e.g. John Doe" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-widest text-slate-400">Parent/Guardian Contact</label>
+              <Input value={parentContact} onChange={e => setParentContact(e.target.value)} placeholder="e.g. 0244123456" />
+            </div>
+            <div className="space-y-2 col-span-1 sm:col-span-2">
+              <label className="text-xs font-black uppercase tracking-widest text-slate-400">Residential Address</label>
+              <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="e.g. Plot 15, Accra" />
             </div>
           </div>
           

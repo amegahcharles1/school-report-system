@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { requireAdmin } from "@/lib/access";
 
 export async function GET() {
   try {
@@ -34,6 +35,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAdmin();
     const body = await request.json();
     const { name, isCompulsory, classIds } = body;
 

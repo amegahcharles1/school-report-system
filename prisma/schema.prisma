@@ -14,6 +14,7 @@ model SchoolSettings {
   id                String   @id @default("default")
   schoolName        String   @default("My School")
   schoolMotto       String   @default("")
+  department        String   @default("")
   schoolAddress     String   @default("")
   schoolPhone       String   @default("")
   schoolEmail       String   @default("")
@@ -30,6 +31,9 @@ model SchoolSettings {
   gradingStyle      String   @default("Standard")
   showPositions      Boolean  @default(true)
   showAverages      Boolean  @default(true)
+  showAttendance    Boolean  @default(true)
+  showNextTermDate  Boolean  @default(true)
+  passingScore      Float    @default(50)
 
   // Custom Labels for Marks Entry & Reports
   test1Label        String   @default("Test 1")
@@ -64,6 +68,7 @@ model SchoolSettings {
   
   teacherRemark     String   @default("")
   headteacherRemark String   @default("")
+  reportFooterText  String   @default("Wishing all students a fruitful stay...")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -143,8 +148,13 @@ model Student {
   lastName     String
   middleName   String       @default("")
   gender       String       @default("Male") // Male or Female
-  dateOfBirth  String       @default("")
-  displayOrder Int          @default(9999) // Custom sort order (lower = first)
+  dateOfBirth     String       @default("")
+  admissionNumber String       @default("")
+  parentName      String       @default("")
+  parentContact   String       @default("")
+  address         String       @default("")
+  status          String       @default("Active")
+  displayOrder    Int          @default(9999) // Custom sort order (lower = first)
   classId      String
   class        Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
   assessments  Assessment[]

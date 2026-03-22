@@ -90,4 +90,5 @@ export interface MarksEntry {
   test2: number;
   assignment2: number;
   examScore: number;
+  audits?: any[];
 }

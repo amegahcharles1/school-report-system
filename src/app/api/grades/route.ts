@@ -1,6 +1,7 @@
 // API: Grade configuration CRUD
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/access';
 
 export async function GET() {
   try {
@@ -16,6 +17,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAdmin();
     const body = await request.json();
     const { minScore, maxScore, grade, remark } = body;
     const config = await prisma.gradeConfig.create({
@@ -30,6 +32,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    await requireAdmin();
     const body = await request.json();
     const { grades } = body;
 

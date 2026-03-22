@@ -57,9 +57,6 @@ export default function MarksEntryPage() {
     queryFn: async () => {
       const res = await fetch('/api/classes');
       return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.length > 0 && !selectedClass) setSelectedClass(data[0].id);
     }
   });
 
@@ -70,11 +67,6 @@ export default function MarksEntryPage() {
     queryFn: async () => {
       const res = await fetch('/api/terms');
       return res.json();
-    },
-    onSuccess: (data) => {
-      const active = data.filter((t) => t.isCurrent);
-      if (active.length > 0 && !selectedTerm) setSelectedTerm(active[0].id);
-      else if (data.length > 0 && !selectedTerm) setSelectedTerm(data[0].id);
     }
   });
 
@@ -85,11 +77,24 @@ export default function MarksEntryPage() {
     queryFn: async () => {
       const res = await fetch('/api/subjects');
       return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.length > 0 && !selectedSubject) setSelectedSubject(data[0].id);
     }
   });
+
+  React.useEffect(() => {
+    if (classes.length > 0 && !selectedClass) setSelectedClass(classes[0].id);
+  }, [classes, selectedClass]);
+
+  React.useEffect(() => {
+    if (terms.length > 0 && !selectedTerm) {
+      const active = terms.filter((t) => t.isCurrent);
+      if (active.length > 0) setSelectedTerm(active[0].id);
+      else setSelectedTerm(terms[0].id);
+    }
+  }, [terms, selectedTerm]);
+
+  React.useEffect(() => {
+    if (subjects.length > 0 && !selectedSubject) setSelectedSubject(subjects[0].id);
+  }, [subjects, selectedSubject]);
 
   const { data: settings } = useQuery({
     queryKey: ['settings'],
@@ -278,9 +283,20 @@ export default function MarksEntryPage() {
       {/* Spreadsheet Grid */}
       <div className="premium-card flex flex-col">
         {loading ? (
-          <div className="p-20 flex flex-col items-center justify-center text-slate-500">
-            <Loader2 className="w-10 h-10 animate-spin mb-4 text-blue-600" />
-            <p className="animate-pulse">Fetching class marks spreadsheet...</p>
+          <div className="p-8 animate-pulse">
+            <div className="h-10 w-full bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center px-4 mb-4 gap-4">
+              <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded-md"></div>
+              <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded-md"></div>
+            </div>
+            <div className="space-y-3">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="h-12 w-48 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
+                  <div className="h-12 flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-lg"></div>
+                  <div className="h-12 w-20 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : localMarks.length === 0 ? (
           <div className="p-20 text-center text-slate-500">

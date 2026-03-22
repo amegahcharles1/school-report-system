@@ -21,6 +21,8 @@ export async function GET() {
     // Get current term
     const settings = await prisma.schoolSettings.findUnique({ where: { id: 'default' } });
     const currentTermId = settings?.currentTermId;
+    const caWeight = settings?.caWeight ?? 40;
+    const examWeight = settings?.examWeight ?? 60;
 
     let bestStudent = null;
     let classAverage = 0;
@@ -44,7 +46,7 @@ export async function GET() {
       for (const student of students) {
         if (student.assessments.length === 0) continue;
         const totals = student.assessments.map((a: Assessment) =>
-          calculateFinalTotal(a.test1, a.assignment1, a.test2, a.assignment2, a.examScore)
+          calculateFinalTotal(a.test1 ?? 0, a.assignment1 ?? 0, a.test2 ?? 0, a.assignment2 ?? 0, a.examScore ?? 0, caWeight, examWeight)
         );
         
         // Track distribution on individual subject totals
@@ -73,7 +75,12 @@ export async function GET() {
     }
     
     // Fetch recent activity
+    const recentActivityWhere = allowedClassIds !== null 
+      ? { assessment: { student: { classId: { in: allowedClassIds } } } } 
+      : {};
+
     const recentActivity = await prisma.assessmentAudit.findMany({
+      where: recentActivityWhere,
       take: 6,
       orderBy: { createdAt: 'desc' },
       include: {

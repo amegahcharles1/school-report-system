@@ -1,6 +1,7 @@
 // API: Single Student CRUD
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { canAccessClass } from '@/lib/access';
 
 // GET single student
 export async function GET(
@@ -14,6 +15,8 @@ export async function GET(
       include: { class: true, assessments: true, attendances: true },
     });
     if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+    if (!(await canAccessClass(student.classId))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+
     return NextResponse.json(student);
   } catch (error) {
     console.error('Student GET error:', error);
@@ -28,6 +31,10 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
+    const studentExists = await prisma.student.findUnique({ where: { id } });
+    if (!studentExists) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!(await canAccessClass(studentExists.classId))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+
     const body = await request.json();
     const student = await prisma.student.update({
       where: { id },
@@ -48,6 +55,10 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const studentExists = await prisma.student.findUnique({ where: { id } });
+    if (!studentExists) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!(await canAccessClass(studentExists.classId))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+
     await prisma.student.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
