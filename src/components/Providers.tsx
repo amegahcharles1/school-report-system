@@ -4,13 +4,15 @@ import { SessionProvider } from 'next-auth/react';
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
+import { SettingsProvider } from '@/contexts/SettingsContext';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 60 * 1000,
-        refetchOnWindowFocus: false,
+        staleTime: 0,                 // Never serve stale data — always re-validate
+        refetchOnWindowFocus: true,   // Re-fetch when tab is focused again
+        retry: 1,                     // retry once on failure before showing error
       },
     },
   }));
@@ -18,8 +20,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
-        {children}
-        <Toaster position="top-right" />
+        <SettingsProvider>
+          {children}
+          <Toaster position="top-right" />
+        </SettingsProvider>
       </SessionProvider>
     </QueryClientProvider>
   );

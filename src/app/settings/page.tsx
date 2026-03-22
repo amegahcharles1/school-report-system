@@ -152,8 +152,15 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       toast.success('System settings applied globally');
+      // Invalidate ALL queries that depend on settings so every page updates immediately
       queryClient.invalidateQueries({ queryKey: ['settings'] });
       queryClient.invalidateQueries({ queryKey: ['grades'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['marks'] });
+      queryClient.invalidateQueries({ queryKey: ['results'] });
+      queryClient.invalidateQueries({ queryKey: ['report-card'] });
+      queryClient.invalidateQueries({ queryKey: ['terms'] });
+      queryClient.invalidateQueries({ queryKey: ['academic-years'] });
     },
     onError: (err: any) => {
       toast.error(err.message || 'Error executing save request');
