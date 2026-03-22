@@ -56,7 +56,9 @@ export default function MarksEntryPage() {
     queryKey: ['classes'],
     queryFn: async () => {
       const res = await fetch('/api/classes');
-      return res.json();
+      if (!res.ok) throw new Error('Failed to fetch classes');
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     }
   });
 
@@ -66,7 +68,9 @@ export default function MarksEntryPage() {
     queryKey: ['terms'],
     queryFn: async () => {
       const res = await fetch('/api/terms');
-      return res.json();
+      if (!res.ok) throw new Error('Failed to fetch terms');
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     }
   });
 
@@ -76,16 +80,18 @@ export default function MarksEntryPage() {
     queryKey: ['subjects'],
     queryFn: async () => {
       const res = await fetch('/api/subjects');
-      return res.json();
+      if (!res.ok) throw new Error('Failed to fetch subjects');
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     }
   });
 
   React.useEffect(() => {
-    if (classes.length > 0 && !selectedClass) setSelectedClass(classes[0].id);
+    if (Array.isArray(classes) && classes.length > 0 && !selectedClass) setSelectedClass(classes[0].id);
   }, [classes, selectedClass]);
 
   React.useEffect(() => {
-    if (terms.length > 0 && !selectedTerm) {
+    if (Array.isArray(terms) && terms.length > 0 && !selectedTerm) {
       const active = terms.filter((t) => t.isCurrent);
       if (active.length > 0) setSelectedTerm(active[0].id);
       else setSelectedTerm(terms[0].id);
@@ -93,13 +99,14 @@ export default function MarksEntryPage() {
   }, [terms, selectedTerm]);
 
   React.useEffect(() => {
-    if (subjects.length > 0 && !selectedSubject) setSelectedSubject(subjects[0].id);
+    if (Array.isArray(subjects) && subjects.length > 0 && !selectedSubject) setSelectedSubject(subjects[0].id);
   }, [subjects, selectedSubject]);
 
   const { data: settings } = useQuery({
     queryKey: ['settings'],
     queryFn: async () => {
       const res = await fetch('/api/settings');
+      if (!res.ok) return {};
       return res.json();
     }
   });
@@ -108,7 +115,9 @@ export default function MarksEntryPage() {
     queryKey: ['grades'],
     queryFn: async () => {
       const res = await fetch('/api/grades');
-      return res.json();
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     }
   });
 

@@ -282,19 +282,19 @@ export default function Dashboard() {
             <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
               <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Express Navigation</h4>
               <div className="grid grid-cols-2 gap-3">
-                <Link href="/marks" className="dashboard-action-btn">
+                <Link href="/marks" className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-[11px] font-black text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all duration-300 hover:-translate-y-1 shadow-sm">
                   <ClipboardEdit className="w-4 h-4" />
                   <span>Entry</span>
                 </Link>
-                <Link href="/students" className="dashboard-action-btn">
+                <Link href="/students" className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-[11px] font-black text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all duration-300 hover:-translate-y-1 shadow-sm">
                   <Users className="w-4 h-4" />
                   <span>Roster</span>
                 </Link>
-                <Link href="/report-cards" className="dashboard-action-btn">
+                <Link href="/report-cards" className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-[11px] font-black text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all duration-300 hover:-translate-y-1 shadow-sm">
                   <FileText className="w-4 h-4" />
                   <span>Reports</span>
                 </Link>
-                <Link href="/results" className="dashboard-action-btn">
+                <Link href="/results" className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-[11px] font-black text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all duration-300 hover:-translate-y-1 shadow-sm">
                   <BarChart3 className="w-4 h-4" />
                   <span>Stats</span>
                 </Link>
@@ -304,39 +304,7 @@ export default function Dashboard() {
         </div>
       </div>
       
-      <style jsx>{`
-        .dashboard-action-btn {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 16px;
-          border-radius: 20px;
-          background: #fff;
-          border: 1px solid #f1f5f9;
-          font-size: 11px;
-          font-weight: 800;
-          color: #64748b;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
-        }
-        :global(.dark) .dashboard-action-btn {
-          background: #0f172a;
-          border-color: #1e293b;
-          color: #94a3b8;
-        }
-        .dashboard-action-btn:hover {
-          transform: translateY(-4px);
-          border-color: #3b82f6;
-          color: #3b82f6;
-          box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1);
-          background: #f0f7ff;
-        }
-        :global(.dark) .dashboard-action-btn:hover {
-          background: rgba(59, 130, 246, 0.05);
-        }
-      `}</style>
+
     </div>
   );
 }

@@ -730,34 +730,6 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <style jsx>{`
-        .settings-input {
-          width: 100%;
-          padding: 0.75rem 1.25rem;
-          border: 1px solid #e2e8f0;
-          border-radius: 0.75rem;
-          background: #f8fafc;
-          font-size: 0.875rem;
-          font-weight: 600;
-          outline: none;
-          transition: all 0.2s;
-        }
-        .dark .settings-input {
-          background: rgba(30, 41, 59, 0.5);
-          border-color: #334155;
-          color: white;
-        }
-        .settings-input:focus {
-          border-color: #4f46e5;
-          box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-          background: white;
-        }
-        .dark .settings-input:focus {
-          border-color: #818cf8;
-          box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.1);
-          background: rgba(15, 23, 42, 1);
-        }
-      `}</style>
     </div>
   );
 }

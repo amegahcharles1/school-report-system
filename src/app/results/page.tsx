@@ -16,7 +16,9 @@ export default function ResultsPage() {
     queryKey: ['classes'],
     queryFn: async () => {
       const res = await fetch('/api/classes');
-      return res.json();
+      if (!res.ok) throw new Error('Failed to fetch classes');
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     }
   });
 
@@ -24,16 +26,18 @@ export default function ResultsPage() {
     queryKey: ['terms'],
     queryFn: async () => {
       const res = await fetch('/api/terms');
-      return res.json();
+      if (!res.ok) throw new Error('Failed to fetch terms');
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     }
   });
 
   useEffect(() => {
-    if (classes.length > 0 && !selectedClass) setSelectedClass(classes[0].id);
+    if (Array.isArray(classes) && classes.length > 0 && !selectedClass) setSelectedClass(classes[0].id);
   }, [classes, selectedClass]);
 
   useEffect(() => {
-    if (terms.length > 0 && !selectedTerm) {
+    if (Array.isArray(terms) && terms.length > 0 && !selectedTerm) {
       const current = terms.find((t: any) => t.isCurrent);
       setSelectedTerm(current ? current.id : terms[0].id);
     }
@@ -43,6 +47,7 @@ export default function ResultsPage() {
     queryKey: ['settings'],
     queryFn: async () => {
       const res = await fetch('/api/settings');
+      if (!res.ok) return {};
       return res.json();
     }
   });

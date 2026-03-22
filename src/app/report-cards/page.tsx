@@ -20,7 +20,9 @@ export default function ReportCardsPage() {
     queryKey: ['classes'],
     queryFn: async () => {
       const res = await fetch('/api/classes');
-      return res.json();
+      if (!res.ok) throw new Error('Failed to fetch classes');
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     }
   });
 
@@ -29,7 +31,9 @@ export default function ReportCardsPage() {
     queryKey: ['terms'],
     queryFn: async () => {
       const res = await fetch('/api/terms');
-      return res.json();
+      if (!res.ok) throw new Error('Failed to fetch terms');
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     }
   });
 
@@ -39,25 +43,27 @@ export default function ReportCardsPage() {
     queryFn: async () => {
       if (!selectedClass) return [];
       const res = await fetch(`/api/students?classId=${selectedClass}`);
-      return res.json();
+      if (!res.ok) throw new Error('Failed to fetch students');
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!selectedClass
   });
 
   useEffect(() => {
-    if (classes.length > 0 && !selectedClass) setSelectedClass(classes[0].id);
+    if (Array.isArray(classes) && classes.length > 0 && !selectedClass) setSelectedClass(classes[0].id);
   }, [classes, selectedClass]);
 
   useEffect(() => {
-    if (terms.length > 0 && !selectedTerm) {
+    if (Array.isArray(terms) && terms.length > 0 && !selectedTerm) {
       const activeTerm = terms.find((t: any) => t.isCurrent);
       setSelectedTerm(activeTerm ? activeTerm.id : terms[0].id);
     }
   }, [terms, selectedTerm]);
 
   useEffect(() => {
-    if (students.length > 0 && !selectedStudent) setSelectedStudent(students[0].id);
-    else if (students.length === 0 && selectedStudent) setSelectedStudent('');
+    if (Array.isArray(students) && students.length > 0 && !selectedStudent) setSelectedStudent(students[0].id);
+    else if ((!Array.isArray(students) || students.length === 0) && selectedStudent) setSelectedStudent('');
   }, [students, selectedStudent]);
 
   // 4. Fetch Report Data (Dependent on Student and Term)
